@@ -104,12 +104,14 @@ app.mount("/static", StaticFiles(directory=_static_dir), name="static")
 # ── CORS ─────────────────────────────────────────────────────────────────────
 # Set ALLOWED_ORIGINS in .env to your deployed frontend URL before going live.
 # Example: ALLOWED_ORIGINS=https://chainmed.example.com
+origins = settings.allowed_origins_list()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.allowed_origins_list(),
+    allow_origins=origins,
     allow_methods=["*"],
     allow_headers=["*"],
-    allow_credentials=True,
+    allow_credentials=False,  # Must be False when allow_origins=["*"] (CORS spec)
+                               # JWT Bearer tokens work via Authorization header — no cookies needed
 )
 
 from admin.router import router as admin_router
