@@ -3,7 +3,7 @@
 Run from backend folder:
   python scripts/reset_and_seed.py
 
-Logins (unchanged):
+Logins:
   manufacturer@chainmed.com  / ChainMed2026!  — Ravi Kumar
   supplier@chainmed.com    / ChainMed2026!  — Priya Sharma
   hospital@chainmed.com    / ChainMed2026!  — Dr. Anand Mehta
