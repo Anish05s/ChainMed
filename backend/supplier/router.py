@@ -42,6 +42,8 @@ from shared.emergency_notifications import (
     notifications_for_supplier,
     to_notification_items,
 )
+from auth.signing import sign_handoff
+from auth.zkp import generate_salt, create_commitment
 
 router = APIRouter(prefix="/supplier", tags=["Supplier"])
 
@@ -63,7 +65,12 @@ def _write_approval_log(
     entity_id: str,
     entity_type: str,
     notes: str,
+    signed_payload: dict = None,
 ) -> ApprovalLog:
+    signature = None
+    if signed_payload and user.private_key_pem:
+        signature = sign_handoff(user.private_key_pem, signed_payload)
+
     log = ApprovalLog(
         actor_role=user.sub_role,
         actor_name=user.full_name or user.email,
@@ -72,6 +79,8 @@ def _write_approval_log(
         entity_id=entity_id,
         entity_type=entity_type,
         notes=notes,
+        signature=signature,
+        signer_address=user.public_key_pem,
     )
     db.add(log)
     return log
@@ -189,11 +198,16 @@ def verify_incoming_shipment(
     if not batch:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Batch not found")
 
+    salt = generate_salt()
+    commitment = create_commitment(data.quantity_reported, salt)
+
     handoff = HandoffRecord(
         shipment_id=shipment.id,
         stage="supplier_receipt",
         submitted_by_role=current_user.sub_role,
         quantity_reported=data.quantity_reported,
+        quantity_commitment=commitment,
+        quantity_salt=salt,
         expiry_reported=data.expiry_reported,
         temp_reported=data.temp_reported,
     )
@@ -214,6 +228,14 @@ def verify_incoming_shipment(
         or f"Verified receipt of {batch.name} ({batch.batch_number}) · "
         f"{data.quantity_reported} units · shipment {shipment.shipment_code}"
     )
+
+    signed_payload = {
+        "action": "incoming_verification",
+        "shipment_id": shipment.id,
+        "quantity_commitment": commitment,
+        "supplier_id": supplier.id,
+    }
+
     approval_log = _write_approval_log(
         db,
         current_user,
@@ -221,6 +243,7 @@ def verify_incoming_shipment(
         entity_id=shipment.id,
         entity_type="shipment",
         notes=notes,
+        signed_payload=signed_payload,
     )
     db.commit()
     db.refresh(handoff)
@@ -365,6 +388,14 @@ def dispatch_to_hospital(
     qr_path = generate_shipment_qr(shipment.id)
     shipment.qr_code_url = qr_path
 
+    signed_payload = {
+        "action": "shipment_dispatch",
+        "batch_id": batch.id,
+        "shipment_code": shipment_code,
+        "quantity_dispatched": data.quantity,
+        "to_entity_id": hospital.id,
+    }
+
     approval_log = _write_approval_log(
         db,
         current_user,
@@ -376,6 +407,7 @@ def dispatch_to_hospital(
             f"to {hospital.name} · code {shipment_code} · "
             f"{remaining - data.quantity} units remaining for this batch"
         ),
+        signed_payload=signed_payload,
     )
     db.commit()
     db.refresh(shipment)

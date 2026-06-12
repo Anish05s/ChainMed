@@ -14,6 +14,7 @@ from manufacturer.schemas import (
     ShipmentCreateRequest,
     ShipmentResponse,
 )
+from auth.signing import sign_handoff
 from qr_service.generator import generate_shipment_qr
 from manufacturer.batch_inventory import (
     dispatched_units_for_batch,
@@ -45,7 +46,12 @@ def _write_approval_log(
     entity_id: str,
     entity_type: str,
     notes: str,
+    signed_payload: dict = None,
 ) -> ApprovalLog:
+    signature = None
+    if signed_payload and user.private_key_pem:
+        signature = sign_handoff(user.private_key_pem, signed_payload)
+
     log = ApprovalLog(
         actor_role=user.sub_role,
         actor_name=user.full_name or user.email,
@@ -54,6 +60,8 @@ def _write_approval_log(
         entity_id=entity_id,
         entity_type=entity_type,
         notes=notes,
+        signature=signature,
+        signer_address=user.public_key_pem,
     )
     db.add(log)
     return log
@@ -125,6 +133,13 @@ def create_batch(
     db.add(batch)
     db.flush()
 
+    signed_payload = {
+        "action": "batch_creation",
+        "batch_number": data.batch_number,
+        "quantity": data.quantity,
+        "manufacturer_id": manufacturer.id,
+    }
+
     approval_log = _write_approval_log(
         db,
         current_user,
@@ -132,6 +147,7 @@ def create_batch(
         entity_id=batch.id,
         entity_type="batch",
         notes=f"Batch {data.batch_number} created ({data.quantity} units)",
+        signed_payload=signed_payload,
     )
     db.commit()
     db.refresh(batch)
@@ -209,6 +225,14 @@ def create_shipment(
     qr_code_url = generate_shipment_qr(shipment.id)
     shipment.qr_code_url = qr_code_url
 
+    signed_payload = {
+        "action": "shipment_dispatch",
+        "batch_id": batch.id,
+        "shipment_code": shipment_code,
+        "quantity_dispatched": data.quantity,
+        "to_entity_id": supplier.id,
+    }
+
     approval_log = _write_approval_log(
         db,
         current_user,
@@ -220,6 +244,7 @@ def create_shipment(
             f"to {supplier.name} · code {shipment_code} · "
             f"{remaining - data.quantity} units remaining in batch"
         ),
+        signed_payload=signed_payload,
     )
     db.commit()
     db.refresh(shipment)

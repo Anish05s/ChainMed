@@ -81,6 +81,19 @@ def override_flag(
     flag.status = "OVERRIDDEN"
     shipment.status = "delivered" # or whatever the final state is
 
+    from auth.signing import sign_handoff
+
+    signed_payload = {
+        "action": "admin_override",
+        "shipment_id": shipment.id,
+        "justification": data.justification,
+        "admin_id": current_user.id,
+    }
+
+    signature = None
+    if current_user.private_key_pem:
+        signature = sign_handoff(current_user.private_key_pem, signed_payload)
+
     log = ApprovalLog(
         actor_role=current_user.sub_role,
         actor_name=current_user.full_name or current_user.email,
@@ -89,6 +102,8 @@ def override_flag(
         entity_id=shipment.id,
         entity_type="shipment",
         notes=f"Admin Override: {data.justification}",
+        signature=signature,
+        signer_address=current_user.public_key_pem,
     )
     db.add(log)
     db.commit()

@@ -30,6 +30,8 @@ from consumer.schemas import (
     StockClearanceHistoryItem,
     CLEARANCE_REASONS,
 )
+from auth.signing import sign_handoff
+from auth.zkp import generate_salt, create_commitment
 
 router = APIRouter(prefix="/consumer", tags=["Consumer"])
 
@@ -51,7 +53,12 @@ def _write_approval_log(
     entity_id: str,
     entity_type: str,
     notes: str,
+    signed_payload: dict = None,
 ) -> ApprovalLog:
+    signature = None
+    if signed_payload and user.private_key_pem:
+        signature = sign_handoff(user.private_key_pem, signed_payload)
+
     log = ApprovalLog(
         actor_role=user.sub_role,
         actor_name=user.full_name or user.email,
@@ -60,6 +67,8 @@ def _write_approval_log(
         entity_id=entity_id,
         entity_type=entity_type,
         notes=notes,
+        signature=signature,
+        signer_address=user.public_key_pem,
     )
     db.add(log)
     return log
@@ -174,11 +183,16 @@ def confirm_receipt(
     if not batch:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Batch not found")
 
+    salt = generate_salt()
+    commitment = create_commitment(data.quantity_reported, salt)
+
     handoff = HandoffRecord(
         shipment_id=shipment.id,
         stage="hospital_receipt",
         submitted_by_role=current_user.sub_role,
         quantity_reported=data.quantity_reported,
+        quantity_commitment=commitment,
+        quantity_salt=salt,
         expiry_reported=data.expiry_reported,
         temp_reported=data.temp_reported,
     )
@@ -198,6 +212,14 @@ def confirm_receipt(
         or f"Confirmed receipt at {consumer.name}: {batch.name} ({batch.batch_number}) · "
         f"{data.quantity_reported} units · {shipment.shipment_code}"
     )
+
+    signed_payload = {
+        "action": "receipt_confirmation",
+        "shipment_id": shipment.id,
+        "quantity_commitment": commitment,
+        "consumer_id": consumer.id,
+    }
+
     approval_log = _write_approval_log(
         db,
         current_user,
@@ -205,6 +227,7 @@ def confirm_receipt(
         entity_id=shipment.id,
         entity_type="shipment",
         notes=notes,
+        signed_payload=signed_payload,
     )
     db.commit()
     db.refresh(handoff)

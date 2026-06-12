@@ -125,6 +125,8 @@ class HandoffRecord(Base):
     stage = Column(String)
     submitted_by_role = Column(String)
     quantity_reported = Column(Integer)
+    quantity_commitment = Column(String)
+    quantity_salt = Column(String)
     expiry_reported = Column(DateTime)
     temp_reported = Column(Float)
     submitted_at = Column(DateTime, default=now)
@@ -192,6 +194,8 @@ class ApprovalLog(Base):
     entity_id = Column(String)
     entity_type = Column(String)
     notes = Column(Text)
+    signature = Column(Text)
+    signer_address = Column(String)
     created_at = Column(DateTime, default=now)
     blockchain_hash = Column(String)
 
