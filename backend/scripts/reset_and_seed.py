@@ -34,18 +34,28 @@ TABLES = [
     "disruption_events",
 ]
 
+from auth.signing import generate_entity_keypair
+
+mfg_keys = generate_entity_keypair()
+sup_keys = generate_entity_keypair()
+con_keys = generate_entity_keypair()
+
 ENTITIES = {
     "manufacturer": Manufacturer(
         id="mfg-001",
         name="AzMed Pharma Ltd",
         license_number="AZM-LIC-001",
         country="India",
+        public_key_pem=mfg_keys["public_key_pem"],
+        private_key_pem=mfg_keys["private_key_pem"],
     ),
     "supplier": Supplier(
         id="sup-001",
         name="NorthEast Medical Supply",
         warehouse_location="Guwahati",
         country="India",
+        public_key_pem=sup_keys["public_key_pem"],
+        private_key_pem=sup_keys["private_key_pem"],
     ),
     "consumer": Consumer(
         id="con-001",
@@ -53,6 +63,8 @@ ENTITIES = {
         type="hospital",
         location="Guwahati",
         country="India",
+        public_key_pem=con_keys["public_key_pem"],
+        private_key_pem=con_keys["private_key_pem"],
     ),
 }
 
@@ -126,6 +138,7 @@ def seed():
         db.flush()
 
         for acc in ACCOUNTS:
+            keys = generate_entity_keypair()
             db.add(
                 User(
                     email=acc["email"],
@@ -134,6 +147,8 @@ def seed():
                     role=acc["role"],
                     sub_role=acc["sub_role"],
                     entity_id=acc["entity_id"],
+                    public_key_pem=keys["public_key_pem"],
+                    private_key_pem=keys["private_key_pem"],
                 )
             )
         db.commit()

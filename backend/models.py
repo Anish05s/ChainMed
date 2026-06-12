@@ -52,6 +52,8 @@ class User(Base):
     role = Column(String, nullable=False)
     sub_role = Column(String, nullable=False)
     entity_id = Column(String)
+    public_key_pem = Column(Text, nullable=True)
+    private_key_pem = Column(Text, nullable=True)
     created_at = Column(DateTime, default=now)
 
 class Manufacturer(Base):

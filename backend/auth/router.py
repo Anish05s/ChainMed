@@ -119,6 +119,7 @@ def register(request: Request, data: RegisterRequest, db: Session = Depends(get_
     else:
         entity_id = _create_entity(db, data)
 
+    user_keys = generate_entity_keypair()
     user = User(
         email=data.email,
         hashed_password=hash_password(data.password),
@@ -126,6 +127,8 @@ def register(request: Request, data: RegisterRequest, db: Session = Depends(get_
         role=data.role,
         sub_role=sub_role,
         entity_id=entity_id,
+        public_key_pem=user_keys["public_key_pem"],
+        private_key_pem=user_keys["private_key_pem"],
     )
     db.add(user)
     db.commit()
