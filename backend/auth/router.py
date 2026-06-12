@@ -1,4 +1,5 @@
 import time
+import logging
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from database import get_db
@@ -13,10 +14,25 @@ from fastapi.security import OAuth2PasswordBearer
 import redis as redis_client
 from config import settings
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/auth", tags=["Authentication"])
-limiter = Limiter(key_func=get_remote_address)
+
+# Rate limiter — use Redis if available, fallback to in-memory
+try:
+    limiter = Limiter(key_func=get_remote_address, storage_uri=settings.REDIS_URL)
+except Exception:
+    limiter = Limiter(key_func=get_remote_address)
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
-_redis = redis_client.from_url(settings.REDIS_URL, decode_responses=True)
+
+# Redis client for token blacklisting — lazy with graceful failure
+try:
+    _redis = redis_client.from_url(settings.REDIS_URL, decode_responses=True, socket_connect_timeout=2)
+    _redis.ping()
+except Exception as e:
+    logger.warning("Redis unavailable for token blacklist: %s", e)
+    _redis = None
 
 VALID_ROLES = frozenset(ROLE_SUB_ROLE.keys())
 
@@ -163,11 +179,12 @@ def logout(
     token: str = Depends(oauth2_scheme),
 ):
     """Blacklist the current JWT in Redis until it expires."""
-    try:
-        payload = decode_token(token)
-        exp = payload.get("exp", 0)
-        ttl = max(int(exp - time.time()), 1)
-        _redis.setex(f"blacklist:{token}", ttl, "1")
-    except Exception:
-        pass  # Token already invalid — treat as logged out
-    return {"message": "Logged out successfully"}
+    if _redis is not None:
+        try:
+            payload = decode_token(token)
+            exp = payload.get("exp", 0)
+            ttl = max(int(exp - time.time()), 1)
+            _redis.setex(f"blacklist:{token}", ttl, "1")
+        except Exception:
+            pass  # Token already invalid — treat as logged out
+    return {"message": "Logged out successfully"}

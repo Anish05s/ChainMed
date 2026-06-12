@@ -88,7 +88,11 @@ app = FastAPI(
 )
 
 # ── Rate Limiter ──────────────────────────────────────────────────────────────
-limiter = Limiter(key_func=get_remote_address, storage_uri=settings.REDIS_URL)
+# Uses Redis if available; falls back to in-memory so app never crashes on boot.
+try:
+    limiter = Limiter(key_func=get_remote_address, storage_uri=settings.REDIS_URL)
+except Exception:
+    limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 

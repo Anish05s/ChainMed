@@ -1,3 +1,4 @@
+import logging
 from typing import Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -8,7 +9,15 @@ from auth.utils import decode_token
 import redis as redis_client
 from config import settings
 
-_redis = redis_client.from_url(settings.REDIS_URL, decode_responses=True)
+logger = logging.getLogger(__name__)
+
+try:
+    _redis = redis_client.from_url(settings.REDIS_URL, decode_responses=True, socket_connect_timeout=2)
+    _redis.ping()
+except Exception as e:
+    logger.warning("Redis unavailable for token blacklist check: %s", e)
+    _redis = None
+
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
@@ -31,11 +40,13 @@ def get_current_user(
         raise credentials_exception
 
     # Check if token has been blacklisted (logout)
-    try:
-        if _redis.exists(f"blacklist:{token}"):
-            raise credentials_exception
-    except Exception:
-        pass  # Redis unavailable — allow request through gracefully
+    if _redis is not None:
+        try:
+            if _redis.exists(f"blacklist:{token}"):
+                raise credentials_exception
+        except Exception:
+            pass  # Redis unavailable — allow request through gracefully
+
 
     user = db.query(User).filter(User.id == user_id).first()
     if user is None:
