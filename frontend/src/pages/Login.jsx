@@ -76,7 +76,7 @@ export default function Login() {
             <div className="flex items-center gap-3 mb-10">
               <img src="/logo.png" alt="ChainMed" className="h-[84px] w-auto object-contain" />
               <h1 className="text-4xl font-black" style={{ color: 'var(--text-base)' }}>
-                Pharma<span className="gradient-text">Chain</span>
+                Chain<span className="gradient-text">Med</span>
               </h1>
             </div>
 
