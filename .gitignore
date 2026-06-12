@@ -107,3 +107,10 @@ debug_*.py
 temp_*.py
 scratch_*.py
 test_manual_*.py
+
+# ── Project specific documentation / research files ──
+BUG_DIAGNOSIS_AND_FIXES.md
+PharmaChain_Research.docx
+generate_paper.py
+ssrn_id3854110_code4713256.pdf
+updateprompt.md
