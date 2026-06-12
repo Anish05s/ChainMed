@@ -1,4 +1,4 @@
-# 🔗 PharmaChain
+# 🔗 ChainMed
 
 > **AI + Blockchain Pharmaceutical Supply Chain Verification & Crisis Intelligence Platform**
 
@@ -11,9 +11,9 @@
 
 ---
 
-## 🎯 What is PharmaChain?
+## 🎯 What is ChainMed?
 
-PharmaChain is a **three-party attestation system** for pharmaceutical supply chains. Every shipment requires independent data submissions from the **Manufacturer**, **Supplier**, and **Hospital/NGO** — and a Hybrid AI engine cross-matches all three in real-time.
+ChainMed is a **three-party attestation system** for pharmaceutical supply chains. Every shipment requires independent data submissions from the **Manufacturer**, **Supplier**, and **Hospital/NGO** — and a Hybrid AI engine cross-matches all three in real-time.
 
 **One-line pitch:** Fraud requires simultaneous collusion across ALL three parties — recorded immutably on blockchain. No IoT hardware needed. Works in conflict zones.
 
@@ -209,8 +209,8 @@ python -m pytest tests/ -v
 ### 1. Clone & setup environment
 
 ```bash
-git clone https://github.com/Anish05s/PharmaChain.git
-cd PharmaChain
+git clone https://github.com/Anish05s/ChainMed.git
+cd ChainMed
 ```
 
 **Backend:**
@@ -248,9 +248,9 @@ This creates three demo accounts:
 
 |              Email             |      Password      |        Role        |
 |--------------------------------|--------------------|---------------------|
-| `manufacturer@pharmachain.com` | `PharmaChain2026!` | Manufacturer Admin |
-|   `supplier@pharmachain.com`   | `PharmaChain2026!` |  Supplier Manager  |
-|   `hospital@pharmachain.com`   | `PharmaChain2026!` |  Hospital Officer  |
+| `manufacturer@chainmed.com` | `ChainMed2026!` | Manufacturer Admin |
+|   `supplier@chainmed.com`   | `ChainMed2026!` |  Supplier Manager  |
+|   `hospital@chainmed.com`   | `ChainMed2026!` |  Hospital Officer  |
 
 ### 4. Start servers
 
@@ -300,7 +300,7 @@ See [`backend/.env.example`](backend/.env.example) and [`frontend/.env.example`]
 | `NEWS_API_KEY` | [newsapi.org/register](https://newsapi.org/register) — Free |
 | `ETHEREUM_RPC_URL` | [dashboard.alchemy.com](https://dashboard.alchemy.com) — Free |
 | `ETHEREUM_PRIVATE_KEY` | Your MetaMask wallet private key (Sepolia testnet) |
-| `CONTRACT_ADDRESS` | After deploying `contracts/PharmaChain.sol` to Sepolia |
+| `CONTRACT_ADDRESS` | After deploying `contracts/ChainMed.sol` to Sepolia |
 
 > **Tip:** Leave all Blockchain vars empty to run in **Mock Mode** — safe for local development, no real wallet needed.
 
@@ -308,7 +308,7 @@ See [`backend/.env.example`](backend/.env.example) and [`frontend/.env.example`]
 
 ## 🔒 Smart Contract
 
-The Solidity contract lives at [`contracts/PharmaChain.sol`](contracts/PharmaChain.sol).
+The Solidity contract lives at [`contracts/ChainMed.sol`](contracts/ChainMed.sol).
 
 To deploy to Sepolia testnet:
 ```bash
@@ -320,7 +320,7 @@ npx hardhat run scripts/deploy.js --network sepolia
 
 ---
 
-## 🏆 Why PharmaChain Wins
+## 🏆 Why ChainMed Wins
 
 1. **Three-party attestation** — nobody else has this angle
 2. **Hybrid AI fraud detection** — deterministic rules + LLM explainability
@@ -336,7 +336,7 @@ npx hardhat run scripts/deploy.js --network sepolia
 ## 📁 Project Structure
 
 ```
-pharmachain/
+chainmed/
 ├── backend/
 │   ├── main.py                    # FastAPI app entry point + CORS production guard
 │   ├── config.py                  # Pydantic settings (reads .env)
@@ -372,7 +372,7 @@ pharmachain/
 │   ├── package.json
 │   └── .env.example
 ├── contracts/
-│   └── PharmaChain.sol            # Solidity smart contract
+│   └── ChainMed.sol            # Solidity smart contract
 ├── .gitignore
 └── README.md
 ```
@@ -413,4 +413,4 @@ MIT License — feel free to use, modify, and distribute.
 
 ---
 
-*PharmaChain — Pharmaceutical supply chain integrity for the other 6 billion.*
+*ChainMed — Pharmaceutical supply chain integrity for the other 6 billion.*

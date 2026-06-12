@@ -4,9 +4,9 @@ Run from backend folder:
   python scripts/reset_and_seed.py
 
 Logins (unchanged):
-  manufacturer@pharmachain.com  / PharmaChain2026!  — Ravi Kumar
-  supplier@pharmachain.com    / PharmaChain2026!  — Priya Sharma
-  hospital@pharmachain.com    / PharmaChain2026!  — Dr. Anand Mehta
+  manufacturer@chainmed.com  / ChainMed2026!  — Ravi Kumar
+  supplier@chainmed.com    / ChainMed2026!  — Priya Sharma
+  hospital@chainmed.com    / ChainMed2026!  — Dr. Anand Mehta
 """
 import sys
 from pathlib import Path
@@ -60,31 +60,31 @@ from config import settings
 
 ACCOUNTS = [
     {
-        "email": "manufacturer@pharmachain.com",
-        "password": "PharmaChain2026!",
+        "email": "manufacturer@chainmed.com",
+        "password": "ChainMed2026!",
         "full_name": "Ravi Kumar",
         "role": "manufacturer",
         "sub_role": "manufacturer_admin",
         "entity_id": "mfg-001",
     },
     {
-        "email": "supplier@pharmachain.com",
-        "password": "PharmaChain2026!",
+        "email": "supplier@chainmed.com",
+        "password": "ChainMed2026!",
         "full_name": "Priya Sharma",
         "role": "supplier",
         "sub_role": "supplier_manager",
         "entity_id": "sup-001",
     },
     {
-        "email": "hospital@pharmachain.com",
-        "password": "PharmaChain2026!",
+        "email": "hospital@chainmed.com",
+        "password": "ChainMed2026!",
         "full_name": "Dr. Anand Mehta",
         "role": "consumer",
         "sub_role": "hospital_officer",
         "entity_id": "con-001",
     },
     {
-        "email": "admin_master@pharmachain.com",
+        "email": "admin_master@chainmed.com",
         "password": settings.ADMIN_MASTER_PASSWORD,
         "full_name": "God Mode Admin",
         "role": "admin",
@@ -92,7 +92,7 @@ ACCOUNTS = [
         "entity_id": None,
     },
     {
-        "email": "admin_manager@pharmachain.com",
+        "email": "admin_manager@chainmed.com",
         "password": settings.ADMIN_MANAGER_PASSWORD,
         "full_name": "Compliance Admin",
         "role": "admin",
@@ -100,7 +100,7 @@ ACCOUNTS = [
         "entity_id": None,
     },
     {
-        "email": "admin_dev@pharmachain.com",
+        "email": "admin_dev@chainmed.com",
         "password": settings.ADMIN_DEV_PASSWORD,
         "full_name": "Technical Admin",
         "role": "admin",

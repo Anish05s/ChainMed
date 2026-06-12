@@ -2,12 +2,12 @@
 pragma solidity ^0.8.20;
 
 /**
- * @title PharmaChain
+ * @title ChainMed
  * @notice Records pharmaceutical shipment handoffs immutably on-chain.
  *         Designed for Ethereum Sepolia testnet (MVP).
  *         Production target: Hyperledger Fabric.
  */
-contract PharmaChain {
+contract ChainMed {
 
     address public owner;
 
@@ -42,7 +42,7 @@ contract PharmaChain {
 
     // ── Modifiers ────────────────────────────────────────────────────────────
     modifier onlyOwner() {
-        require(msg.sender == owner, "PharmaChain: caller is not the owner");
+        require(msg.sender == owner, "ChainMed: caller is not the owner");
         _;
     }
 

@@ -97,8 +97,8 @@ function AppFooter() {
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-5 gap-8">
         <div className="md:col-span-2">
           <div className="flex items-center gap-3 mb-4">
-            <img src="/logo.png" alt="PharmaChain" className="w-10 h-10 object-contain" />
-            <span className="text-xl font-bold text-white">PharmaChain</span>
+            <img src="/logo.png" alt="ChainMed" className="w-10 h-10 object-contain" />
+            <span className="text-xl font-bold text-white">ChainMed</span>
           </div>
           <p className="text-slate-400 max-w-sm mb-6 leading-relaxed">
             AI + Blockchain pharmaceutical supply chain integrity for the other 6 billion.
@@ -113,7 +113,7 @@ function AppFooter() {
         <div>
           <h3 className="text-white font-bold mb-4">Company</h3>
           <ul className="space-y-3">
-            <li><a href="#" className="hover:text-white transition-colors">About PharmaChain</a></li>
+            <li><a href="#" className="hover:text-white transition-colors">About ChainMed</a></li>
             <li><a href="#" className="hover:text-white transition-colors">Events</a></li>
           </ul>
         </div>
@@ -144,7 +144,7 @@ function AppFooter() {
       </div>
       
       <div className="max-w-7xl mx-auto mt-12 pt-6 border-t border-slate-800 flex flex-col md:flex-row justify-between items-center text-slate-500">
-        <p>© 2026 PharmaChain. All rights reserved.</p>
+        <p>© 2026 ChainMed. All rights reserved.</p>
         <div className="flex gap-6 mt-4 md:mt-0">
           <a href="#" className="hover:text-slate-300 transition-colors">Data Security</a>
           <a href="#" className="hover:text-slate-300 transition-colors">Privacy Statement</a>
@@ -180,7 +180,7 @@ export default function Layout({ title, children, actions }) {
               style={{ background: gradient }}
             >P</div>
             <div>
-              <p className="font-bold text-lg leading-none" style={{ color: 'var(--text-base)' }}>PharmaChain</p>
+              <p className="font-bold text-lg leading-none" style={{ color: 'var(--text-base)' }}>ChainMed</p>
               <p className="text-xs mt-0.5" style={{ color: 'var(--text-light)' }}>AI Supply Chain</p>
             </div>
           </Link>

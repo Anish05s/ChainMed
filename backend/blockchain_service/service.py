@@ -1,7 +1,7 @@
 """
-PharmaChain Blockchain Service
+ChainMed Blockchain Service
 ================================
-Handles async interaction with the PharmaChain Solidity contract on
+Handles async interaction with the ChainMed Solidity contract on
 Ethereum Sepolia testnet.
 
 MOCK MODE (default when CONTRACT_ADDRESS is empty):

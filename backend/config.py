@@ -4,18 +4,18 @@ from typing import List
 
 class Settings(BaseSettings):
     # ── Database ──────────────────────────────────────────────────────────────
-    DATABASE_URL: str = "postgresql://postgres:postgres123@localhost:5432/pharmachain"
+    DATABASE_URL: str = "postgresql://postgres:postgres123@localhost:5432/chainmed"
     REDIS_URL: str = "redis://localhost:6379"
 
     # ── App ───────────────────────────────────────────────────────────────────
     # IMPORTANT: override SECRET_KEY in production .env — never use the default
-    SECRET_KEY: str = "pharmachain-secret-key-change-in-production"
+    SECRET_KEY: str = "chainmed-secret-key-change-in-production"
     ENVIRONMENT: str = "development"
     PUBLIC_APP_URL: str = "http://localhost:5173"
     API_BASE_URL: str = "http://localhost:8000"
 
     # CORS: comma-separated list of allowed origins for production
-    # Example: "https://pharmachain.example.com,https://app.pharmachain.io"
+    # Example: "https://chainmed.example.com,https://app.chainmed.io"
     ALLOWED_ORIGINS: str = "*"
 
     # ── Blockchain (Ethereum Sepolia) ─────────────────────────────────────────
@@ -45,4 +45,4 @@ class Settings(BaseSettings):
         return [o.strip().rstrip("/") for o in self.ALLOWED_ORIGINS.split(",") if o.strip()]
 
 
-settings = Settings()
+settings = Settings()

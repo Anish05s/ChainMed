@@ -1,7 +1,7 @@
-# PharmaChain_UpdatePrompt.md
-# ADDITIONS ONLY — Nothing in this file exists in PharmaChain_MasterPrompt_Classic.md
+# ChainMed_UpdatePrompt.md
+# ADDITIONS ONLY — Nothing in this file exists in ChainMed_MasterPrompt_Classic.md
 # Use this with Cursor, Antigravity, Claude, or any AI to update the existing GitHub repo.
-# Context: Project is live at pharmachain-mauve.vercel.app, backend on Railway, repo at github.com/Anish05s/PharmaChain
+# Context: Project is live at ChainMed-mauve.vercel.app, backend on Railway, repo at github.com/Anish05s/ChainMed
 
 ---
 
@@ -509,7 +509,7 @@ app.include_router(admin_router)
 
 ```python
 """
-Seed PharmaChain with demo data for testing and hackathon demos.
+Seed ChainMed with demo data for testing and hackathon demos.
 Run: python seed.py
 Creates 3 demo accounts (one per role) + a sample shipment pipeline.
 """
@@ -784,6 +784,6 @@ Implement in this exact order to avoid dependency issues:
 
 ---
 
-**PharmaChain_UpdatePrompt.md**
+**ChainMed_UpdatePrompt.md**
 *Additions only. Nothing here duplicates the master prompt.*
-*Use with Cursor, Antigravity, or any AI pointing at github.com/Anish05s/PharmaChain*
+*Use with Cursor, Antigravity, or any AI pointing at github.com/Anish05s/ChainMed*

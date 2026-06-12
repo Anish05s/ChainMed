@@ -74,7 +74,7 @@ export default function Login() {
           <div className="animate-slide-up">
             {/* New Logo style */}
             <div className="flex items-center gap-3 mb-10">
-              <img src="/logo.png" alt="PharmaChain" className="h-[84px] w-auto object-contain" />
+              <img src="/logo.png" alt="ChainMed" className="h-[84px] w-auto object-contain" />
               <h1 className="text-4xl font-black" style={{ color: 'var(--text-base)' }}>
                 Pharma<span className="gradient-text">Chain</span>
               </h1>
@@ -108,8 +108,8 @@ export default function Login() {
           <div className="w-full max-w-md">
             {/* Mobile logo */}
             <div className="lg:hidden text-center mb-8 flex flex-col items-center">
-              <img src="/logo.png" alt="PharmaChain" className="h-[72px] w-auto object-contain mb-3" />
-              <h1 className="text-2xl font-bold" style={{ color: 'var(--text-base)' }}>PharmaChain</h1>
+              <img src="/logo.png" alt="ChainMed" className="h-[72px] w-auto object-contain mb-3" />
+              <h1 className="text-2xl font-bold" style={{ color: 'var(--text-base)' }}>ChainMed</h1>
             </div>
 
             <div
@@ -137,7 +137,7 @@ export default function Login() {
                     id="login-email"
                     type="email"
                     className="w-full px-4 py-3 text-sm"
-                    placeholder="you@pharmachain.com"
+                    placeholder="you@chainmed.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
@@ -255,8 +255,8 @@ export default function Login() {
           {/* Left side */}
           <div className="lg:w-1/3 flex flex-col">
             <div className="flex items-center gap-3 mb-6">
-              <img src="/logo.png" alt="PharmaChain" className="h-[60px] w-auto object-contain" />
-              <span className="text-2xl font-bold tracking-tight">PharmaChain</span>
+              <img src="/logo.png" alt="ChainMed" className="h-[60px] w-auto object-contain" />
+              <span className="text-2xl font-bold tracking-tight">ChainMed</span>
             </div>
             <p className="text-sm text-slate-300 leading-relaxed mb-8 max-w-sm">
               AI + Blockchain pharmaceutical supply chain integrity for the other 6 billion.
@@ -281,7 +281,7 @@ export default function Login() {
             <div>
               <h3 className="font-bold text-white mb-4">Company</h3>
               <ul className="space-y-3 text-sm text-slate-300">
-                <li><a href="#" className="hover:text-white transition-colors">About PharmaChain</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">About ChainMed</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">Events</a></li>
               </ul>
             </div>
@@ -312,7 +312,7 @@ export default function Login() {
         
         {/* Copyright */}
         <div className="max-w-7xl mx-auto mt-16 pt-8 border-t border-slate-700/50 flex flex-col md:flex-row justify-between items-center text-xs text-slate-400">
-          <p>© 2026 PharmaChain. All rights reserved.</p>
+          <p>© 2026 ChainMed. All rights reserved.</p>
           <div className="flex gap-6 mt-4 md:mt-0">
             <a href="#" className="hover:text-white transition-colors">Data Security</a>
             <a href="#" className="hover:text-white transition-colors">Privacy Statement</a>

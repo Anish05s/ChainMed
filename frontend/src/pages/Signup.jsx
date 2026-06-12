@@ -97,7 +97,7 @@ export default function Signup() {
             className="w-14 h-14 rounded-2xl flex items-center justify-center text-white font-bold text-2xl shadow-lg mx-auto mb-4"
             style={{ background: 'linear-gradient(135deg,#0891b2,#3b82f6)' }}
           >P</div>
-          <h1 className="text-3xl font-bold">Join PharmaChain</h1>
+          <h1 className="text-3xl font-bold">Join ChainMed</h1>
           <p className="text-sm mt-1" style={{ color: 'var(--text-light)' }}>Create your verified supply chain account</p>
         </div>
 

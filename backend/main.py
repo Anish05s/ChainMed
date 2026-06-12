@@ -44,7 +44,7 @@ async def lifespan(app: FastAPI):
         raise RuntimeError(
             "CRITICAL SECURITY GUARD: ALLOWED_ORIGINS must not be '*' in production. "
             "Set it to your exact frontend domain in Railway environment variables, e.g. "
-            "ALLOWED_ORIGINS=https://pharmachain-mauve.vercel.app"
+            "ALLOWED_ORIGINS=https://chainmed-mauve.vercel.app"
         )
     # ─────────────────────────────────────────────────────────────────────────
 
@@ -64,7 +64,7 @@ async def lifespan(app: FastAPI):
     # 4. News monitor (Phase 3 stub)
     start_news_monitor(settings.NEWS_API_KEY)
 
-    logger.info("PharmaChain API started — environment: %s", settings.ENVIRONMENT)
+    logger.info("ChainMed API started — environment: %s", settings.ENVIRONMENT)
 
     yield  # ← application runs here
 
@@ -75,7 +75,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="PharmaChain API",
+    title="ChainMed API",
     version="2.0.0",
     description=(
         "AI + Blockchain pharmaceutical supply chain verification and "
@@ -91,7 +91,7 @@ app.mount("/static", StaticFiles(directory=_static_dir), name="static")
 
 # ── CORS ─────────────────────────────────────────────────────────────────────
 # Set ALLOWED_ORIGINS in .env to your deployed frontend URL before going live.
-# Example: ALLOWED_ORIGINS=https://pharmachain.example.com
+# Example: ALLOWED_ORIGINS=https://chainmed.example.com
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins_list(),
@@ -121,7 +121,7 @@ def health_check():
     bc = get_blockchain_service()
     return {
         "status": "ok",
-        "project": "PharmaChain",
+        "project": "ChainMed",
         "version": "2.0.0",
         "environment": settings.ENVIRONMENT,
         "blockchain_mode": "mock" if bc.is_mock else "sepolia",

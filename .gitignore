@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────
-#  PharmaChain .gitignore
+#  ChainMed .gitignore
 #  NEVER commit secrets, venvs, or build output
 # ─────────────────────────────────────────────
 

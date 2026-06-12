@@ -1,2 +1,2 @@
-# 🔗 PharmaChain
+# 🔗 ChainMed
 

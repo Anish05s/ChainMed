@@ -1,5 +1,5 @@
 """
-PharmaChain Verification AI — Test Suite
+ChainMed Verification AI — Test Suite
 ==========================================
 Addition 6 from updateprompt.md
 

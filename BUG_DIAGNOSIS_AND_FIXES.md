@@ -160,7 +160,7 @@ def _update_explanation_with_llm(
 Your contract has:
 ```solidity
 modifier onlyOwner() {
-    require(msg.sender == owner, "PharmaChain: caller is not the owner");
+    require(msg.sender == owner, "ChainMed: caller is not the owner");
 }
 
 function recordHandoff(...) external onlyOwner { ... }
@@ -201,7 +201,7 @@ tx_hash_bytes = self._w3.eth.send_raw_transaction(signed.raw_transaction)
 **Check your contract deployment:**
 
 1. Go to [Sepolia Etherscan](https://sepolia.etherscan.io/)
-2. Find your `PharmaChain` contract address
+2. Find your `ChainMed` contract address
 3. Click "Contract" tab → look for "Owner" field in constructor args or read methods
 4. Note the owner address
 

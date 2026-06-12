@@ -44,7 +44,7 @@ export default function PublicShipmentPage() {
             className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-sm"
             style={{ background: 'linear-gradient(135deg,#0891b2,#3b82f6)' }}
           >P</div>
-          <span className="font-bold text-lg" style={{ color: 'var(--text-base)' }}>PharmaChain</span>
+          <span className="font-bold text-lg" style={{ color: 'var(--text-base)' }}>ChainMed</span>
         </Link>
         <span
           className="text-xs font-bold px-3 py-1 rounded-full"
@@ -210,7 +210,7 @@ export default function PublicShipmentPage() {
       </main>
 
       <footer className="text-center py-8 text-xs" style={{ color: 'var(--text-light)' }}>
-        Powered by PharmaChain · AI + Blockchain pharmaceutical supply chain integrity
+        Powered by ChainMed · AI + Blockchain pharmaceutical supply chain integrity
       </footer>
     </div>
   )
