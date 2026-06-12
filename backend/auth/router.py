@@ -1,12 +1,22 @@
-from fastapi import APIRouter, Depends, HTTPException
+import time
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from database import get_db
 from models import User, Manufacturer, Supplier, Consumer
 from auth.schemas import RegisterRequest, LoginRequest, TokenResponse, ROLE_SUB_ROLE
-from auth.utils import hash_password, verify_password, create_access_token
+from auth.utils import hash_password, verify_password, create_access_token, decode_token
+from auth.signing import generate_entity_keypair
 from shared.entity_ids import next_entity_id
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+from fastapi.security import OAuth2PasswordBearer
+import redis as redis_client
+from config import settings
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
+limiter = Limiter(key_func=get_remote_address)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+_redis = redis_client.from_url(settings.REDIS_URL, decode_responses=True)
 
 VALID_ROLES = frozenset(ROLE_SUB_ROLE.keys())
 
@@ -35,12 +45,15 @@ def _get_org_name(db: Session, role: str, entity_id: str) -> str | None:
 
 def _create_entity(db: Session, data: RegisterRequest) -> str:
     entity_id = next_entity_id(db, data.role)
+    keypair = generate_entity_keypair()
     if data.role == "manufacturer":
         entity = Manufacturer(
             id=entity_id,
             name=data.organization_name,
             license_number=data.license_number or f"LIC-{data.email.split('@')[0]}",
             country=data.country,
+            public_key_pem=keypair["public_key_pem"],
+            private_key_pem=keypair["private_key_pem"],
         )
     elif data.role == "supplier":
         entity = Supplier(
@@ -48,6 +61,8 @@ def _create_entity(db: Session, data: RegisterRequest) -> str:
             name=data.organization_name,
             warehouse_location=data.warehouse_location or data.location,
             country=data.country,
+            public_key_pem=keypair["public_key_pem"],
+            private_key_pem=keypair["private_key_pem"],
         )
     elif data.role == "consumer":
         entity = Consumer(
@@ -56,6 +71,8 @@ def _create_entity(db: Session, data: RegisterRequest) -> str:
             type=data.consumer_type,
             location=data.location,
             country=data.country,
+            public_key_pem=keypair["public_key_pem"],
+            private_key_pem=keypair["private_key_pem"],
         )
     else:
         raise HTTPException(status_code=400, detail="Invalid role")
@@ -65,7 +82,8 @@ def _create_entity(db: Session, data: RegisterRequest) -> str:
 
 
 @router.post("/register", response_model=TokenResponse)
-def register(data: RegisterRequest, db: Session = Depends(get_db)):
+@limiter.limit("3/minute")
+def register(request: Request, data: RegisterRequest, db: Session = Depends(get_db)):
     if data.role not in VALID_ROLES:
         raise HTTPException(status_code=400, detail="Role must be manufacturer, supplier, or consumer")
 
@@ -114,7 +132,8 @@ def register(data: RegisterRequest, db: Session = Depends(get_db)):
     )
 
 @router.post("/login", response_model=TokenResponse)
-def login(data: LoginRequest, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def login(request: Request, data: LoginRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == data.email).first()
     if not user or not verify_password(data.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
@@ -137,3 +156,18 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
         entity_id=user.entity_id,
         org_name=_get_org_name(db, user.role, user.entity_id)
     )
+
+
+@router.post("/logout", tags=["Authentication"])
+def logout(
+    token: str = Depends(oauth2_scheme),
+):
+    """Blacklist the current JWT in Redis until it expires."""
+    try:
+        payload = decode_token(token)
+        exp = payload.get("exp", 0)
+        ttl = max(int(exp - time.time()), 1)
+        _redis.setex(f"blacklist:{token}", ttl, "1")
+    except Exception:
+        pass  # Token already invalid — treat as logged out
+    return {"message": "Logged out successfully"}

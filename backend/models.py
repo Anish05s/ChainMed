@@ -61,6 +61,8 @@ class Manufacturer(Base):
     license_number = Column(String, unique=True)
     country = Column(String)
     trust_score = Column(Float, default=100.0)
+    public_key_pem = Column(Text, nullable=True)
+    private_key_pem = Column(Text, nullable=True)
     created_at = Column(DateTime, default=now)
 
 class Supplier(Base):
@@ -70,6 +72,8 @@ class Supplier(Base):
     warehouse_location = Column(String)
     country = Column(String)
     trust_score = Column(Float, default=100.0)
+    public_key_pem = Column(Text, nullable=True)
+    private_key_pem = Column(Text, nullable=True)
     created_at = Column(DateTime, default=now)
 
 class Consumer(Base):
@@ -80,7 +84,10 @@ class Consumer(Base):
     location = Column(String)
     country = Column(String)
     trust_score = Column(Float, default=100.0)
+    public_key_pem = Column(Text, nullable=True)
+    private_key_pem = Column(Text, nullable=True)
     created_at = Column(DateTime, default=now)
+
 
 class MedicineBatch(Base):
     __tablename__ = "medicine_batches"
