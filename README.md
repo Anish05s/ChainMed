@@ -113,10 +113,11 @@ result = compute_risk_score(
 
 ## ✨ Key Features
 
-- 🔐 **JWT Authentication** — Role-based access (Manufacturer Admin / Supplier Manager / Hospital Officer)
+- 🔐 **ECDSA Cryptographic Identity** — Server-side secp256k1 signatures for every supply chain action
+- 🔏 **Zero-Knowledge Privacy** — SHA-256 salted hash commitments for quantity verification without exposing raw data
 - 🤖 **Hybrid AI Verification** — Rule engine + Gemini LLM investigator
 - ⛓️ **Ethereum Blockchain** — Immutable on-chain records (Sepolia testnet, mock mode for dev)
-- 📋 **Approval Audit Log** — Append-only compliance trail for every critical action (DSCSA/FMD ready)
+- 📋 **Approval Audit Log** — Append-only compliance trail with ECDSA signatures (DSCSA/FMD ready)
 - 📦 **Stock Intelligence** — Threshold-based alerts + auto restock requests
 - 🗺️ **Crisis & Rerouting AI** — NewsAPI disruption detection + Dijkstra alternate route suggestions
 - 🏅 **Trust Engine** — Entity trust scores updated after every verification
@@ -156,6 +157,7 @@ python -m pytest tests/ -v
 
 | # | Addition | What | Status |
 |---|----------|------|--------|
+| 1 | **ECDSA Identity & ZKP Privacy** | secp256k1 signing + SHA-256 hash commitments across all 3 parties | ✅ Done |
 | 10 | **Research Formula** | `compute_risk_score()` pure function matching `R = min(Σ wᵢfᵢ, 100)` with academic references | ✅ Done |
 | 6 | **Pytest Suite** | 9 unit tests covering all risk rules, edge cases, and false positives | ✅ Done · 9/9 pass |
 | 7 | **DisruptionEvents DB** | Updated ORM with `description`, `resolved`, `recommended_medicines` fields | ✅ Done |
@@ -174,7 +176,6 @@ python -m pytest tests/ -v
 
 | # | Addition | Why Deferred |
 |---|----------|-------------|
-| 1 | **ECDSA Signing** | Schema migration across 3 tables + keypair generation on registration |
 | 3 | **Rate Limiting (slowapi)** | Requires Redis configured on Railway first |
 | 4 | **JWT Redis Blacklist** | Same Redis dependency; 15-min tokens would disrupt demo flows |
 | 12 | **requirements.txt update** | Minor — add after other additions stable |
