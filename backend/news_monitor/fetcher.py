@@ -26,7 +26,7 @@ def fetch_gdelt_events() -> List[dict]:
     """Fetch recent disruptions from GDELT."""
     url = "https://api.gdeltproject.org/api/v2/doc/doc"
     params = {
-        "query": "(flood OR earthquake OR outbreak OR strike OR quarantine)",
+        "query": "(flood OR earthquake OR outbreak OR strike OR quarantine OR war OR famine OR cyclone OR disaster)",
         "mode": "ArtList",
         "format": "json",
         "maxrecords": 10,
@@ -43,23 +43,26 @@ def fetch_gdelt_events() -> List[dict]:
                 title = article.get("title", "").lower()
                 
                 # Determine event type
-                event_type = "other"
-                if "flood" in title: event_type = "flood"
+                event_type = None
+                if "flood" in title or "cyclone" in title: event_type = "flood"
                 elif "earthquake" in title: event_type = "earthquake"
-                elif "outbreak" in title: event_type = "outbreak"
+                elif "outbreak" in title: event_type = "disease_outbreak"
                 elif "strike" in title: event_type = "strike"
                 elif "quarantine" in title: event_type = "quarantine"
+                elif "war" in title or "conflict" in title: event_type = "conflict"
+                elif "famine" in title: event_type = "famine"
+                elif "disaster" in title: event_type = "disaster"
                 
-                # We'll use the domain or URL as a proxy for region if not easily parsable,
-                # but let's just mark it as Global/News for now unless we do NER.
-                region = article.get("domain", "Global")
-                
-                events.append({
-                    "event_type": event_type,
-                    "region": region,
-                    "severity": "medium",  # default
-                    "source": "GDELT"
-                })
+                # Only save it if we successfully classified it
+                if event_type:
+                    region = article.get("domain", "Global")
+                    
+                    events.append({
+                        "event_type": event_type,
+                        "region": region,
+                        "severity": "high",  # GDELT events are usually major news
+                        "source": "GDELT"
+                    })
     except Exception as e:
         logger.error(f"GDELT fetch error: {e}")
         
