@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     CONTRACT_ADDRESS: str = ""
 
     # ── External APIs ─────────────────────────────────────────────────────────
-    OPENWEATHER_API_KEY: Optional[str] = None
+    OPENWEATHER_API_KEY: str = ""
     SENDGRID_API_KEY: str = ""
     MAPBOX_TOKEN: str = ""
     GEMINI_API_KEY: str = ""

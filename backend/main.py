@@ -26,7 +26,6 @@ from crisis_ai.router import router as crisis_router
 from blockchain_service.service import init_blockchain_service
 from notification_service.service import init_redis
 from inventory_ai.monitor import start_scheduler
-from news_monitor.stub import start_news_monitor
 from database import SessionLocal
 
 logger = logging.getLogger(__name__)
@@ -64,8 +63,9 @@ async def lifespan(app: FastAPI):
     # 3. Inventory AI scheduler
     _scheduler = start_scheduler(SessionLocal)
 
-    # 4. News monitor (Phase 3 stub)
-    start_news_monitor(settings.OPENWEATHER_API_KEY)
+    # 4. Crisis AI news monitor (GDELT + OpenWeather)
+    from news_monitor.fetcher import start_scheduler as start_news_scheduler
+    news_scheduler = start_news_scheduler(SessionLocal, settings.OPENWEATHER_API_KEY)
 
     logger.info("ChainMed API started — environment: %s", settings.ENVIRONMENT)
 
@@ -75,6 +75,10 @@ async def lifespan(app: FastAPI):
     if _scheduler:
         _scheduler.shutdown(wait=False)
         logger.info("Inventory AI scheduler stopped.")
+        
+    if news_scheduler:
+        news_scheduler.shutdown(wait=False)
+        logger.info("Crisis AI news scheduler stopped.")
 
 
 app = FastAPI(

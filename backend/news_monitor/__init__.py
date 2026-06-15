@@ -1,4 +1,4 @@
 """news_monitor package"""
-from news_monitor.stub import start_news_monitor
+from news_monitor.fetcher import start_scheduler
 
-__all__ = ["start_news_monitor"]
+__all__ = ["start_scheduler"]
