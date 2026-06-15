@@ -264,7 +264,7 @@ export default function CrisisDashboard() {
                   type="text"
                   value={formData.source}
                   onChange={(e) => setFormData((d) => ({ ...d, source: e.target.value }))}
-                  placeholder="manual / newsapi / WHO"
+                  placeholder="manual / gdelt / openweather / WHO"
                   className="w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-red-400"
                   style={{ background: '#ffffff', border: '1px solid var(--border-strong)', color: 'var(--text-base)' }}
                 />

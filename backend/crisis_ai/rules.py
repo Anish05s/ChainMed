@@ -2,7 +2,7 @@
 Crisis AI — Rule-based medicine recommendations per event type (Phase 3 MVP).
 Communicates with other modules ONLY via the database.
 
-Phase 3 upgrade: replace manual input with NewsAPI/GDELT + NetworkX rerouting.
+# Phase 3 upgrade: replace manual input with GDELT + OpenWeather + NetworkX rerouting.
 """
 from typing import Dict, List
 

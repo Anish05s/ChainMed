@@ -65,7 +65,7 @@ async def lifespan(app: FastAPI):
     _scheduler = start_scheduler(SessionLocal)
 
     # 4. News monitor (Phase 3 stub)
-    start_news_monitor(settings.NEWS_API_KEY)
+    start_news_monitor(settings.OPENWEATHER_API_KEY)
 
     logger.info("ChainMed API started — environment: %s", settings.ENVIRONMENT)
 

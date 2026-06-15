@@ -85,7 +85,7 @@ export default function Login() {
                 { icon: '🔐', t: 'Three-Party Attestation', d: 'Fraud requires simultaneous collusion across all three parties — always on-chain.' },
                 { icon: '⛓️', t: 'Immutable Blockchain Records', d: 'Every handoff recorded on Ethereum Sepolia. Tamper-proof audit trail.' },
                 { icon: '🤖', t: 'Explainable AI Flags', d: 'Risk score 0–100 with human-readable explanation on every cross-match.' },
-                { icon: '🌍', t: 'Crisis-Aware Rerouting', d: 'NewsAPI + NetworkX detects floods & conflicts and reroutes supply chains.' },
+                { icon: '🌍', t: 'Crisis-Aware Rerouting', d: 'GDELT + OpenWeather + NetworkX detects floods & conflicts and reroutes supply chains.' },
               ].map(({ icon, t, d }) => (
                 <div
                   key={t}

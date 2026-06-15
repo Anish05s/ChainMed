@@ -119,7 +119,7 @@ result = compute_risk_score(
 - ⛓️ **Ethereum Blockchain** — Immutable on-chain records (Sepolia testnet, mock mode for dev)
 - 📋 **Approval Audit Log** — Append-only compliance trail with ECDSA signatures (DSCSA/FMD ready)
 - 📦 **Stock Intelligence** — Threshold-based alerts + auto restock requests
-- 🗺️ **Crisis & Rerouting AI** — NewsAPI disruption detection + Dijkstra alternate route suggestions
+- 🗺️ **Crisis & Rerouting AI** — GDELT + OpenWeather disruption detection + Dijkstra alternate route suggestions
 - 🏅 **Trust Engine** — Entity trust scores updated after every verification
 - 📱 **QR Verification** — Public shipment verification page with blockchain hash
 - 🔔 **Real-time Notifications** — Redis pub/sub alerts in dashboard
@@ -298,7 +298,7 @@ See [`backend/.env.example`](backend/.env.example) and [`frontend/.env.example`]
 |----------|----------------|
 | `GEMINI_API_KEY` | [aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey) — Free |
 | `MAPBOX_TOKEN` / `VITE_MAPBOX_TOKEN` | [account.mapbox.com](https://account.mapbox.com) — Free |
-| `NEWS_API_KEY` | [newsapi.org/register](https://newsapi.org/register) — Free |
+| `OPENWEATHER_API_KEY` | [openweathermap.org](https://openweathermap.org/api) — Free |
 | `ETHEREUM_RPC_URL` | [dashboard.alchemy.com](https://dashboard.alchemy.com) — Free |
 | `ETHEREUM_PRIVATE_KEY` | Your MetaMask wallet private key (Sepolia testnet) |
 | `CONTRACT_ADDRESS` | After deploying `contracts/ChainMed.sol` to Sepolia |
@@ -353,7 +353,7 @@ chainmed/
 │   ├── tests/                     # Pytest test suite (9 tests, all passing)
 │   │   └── test_verification_ai.py
 │   ├── inventory_ai/              # Stock threshold monitoring
-│   ├── crisis_ai/                 # NewsAPI disruption + rerouting
+│   ├── crisis_ai/                 # GDELT + OpenWeather disruption + rerouting
 │   ├── trust_engine/              # Entity trust score engine
 │   ├── blockchain_service/        # web3.py + Sepolia integration
 │   ├── notification_service/      # Redis pub/sub alerts

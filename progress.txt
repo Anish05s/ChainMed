@@ -1,0 +1,61 @@
+========================================================================
+CHAINMED (PHARMACHAIN) - PROJECT OVERVIEW & FEATURES
+========================================================================
+
+------------------------------------------------------------------------
+1. WHAT IS THIS PROJECT?
+------------------------------------------------------------------------
+ChainMed is a secure supply chain verification platform for pharmaceuticals.
+It uses a three-party attestation model (Manufacturer + Supplier + Hospital)
+combined with Hybrid AI and Blockchain to detect fraud and trace medicines
+without requiring expensive IoT hardware.
+
+------------------------------------------------------------------------
+2. CORE CONCEPT: THREE-PARTY ATTESTATION
+------------------------------------------------------------------------
+To verify a shipment, all three parties must independently report details:
+- Manufacturer: Dispatches the batch with specific details.
+- Supplier: Verifies the received shipment and dispatches it.
+- Hospital/NGO: Confirms final receipt at the clinic.
+
+If any party's report does not match (e.g., quantities, expiry dates, or 
+temperatures differ), the system flags the batch as high-risk.
+
+------------------------------------------------------------------------
+3. KEY FEATURES
+------------------------------------------------------------------------
+
+* Hybrid AI Verification Engine
+  - Layer 1 (Rule Engine): Automatically computes a mathematical risk score 
+    based on quantity deviations, expiry mismatches, and temperature breaches.
+  - Layer 2 (Gemini LLM): If a shipment is flagged, Google Gemini generates 
+    a detailed plain-English investigation report for compliance officers.
+
+* Cryptographic Security & Identity (ECDSA)
+  - Implements server-side ECDSA (secp256k1) signatures for all entities 
+    (Manufacturers, Suppliers, Hospitals, Admins, and Backend System).
+  - Provides cryptographic proof of origin and non-repudiation.
+
+* Privacy-Preserving Quantity Validation (ZKP Layer)
+  - Uses SHA-256 salted hash commitments (Zero-Knowledge Proof concept) to 
+    verify quantities across the supply chain without exposing raw stock numbers.
+
+* Ethereum Blockchain Integration
+  - Records cryptographic hashes of approvals, handoffs, and fraud flags 
+    immutably on the Ethereum Sepolia testnet (with a local mock fallback).
+
+* Crisis Detection & Rerouting AI
+  - Monitors real-world supply chain disruptions (via GDELT + OpenWeather).
+  - Uses Dijkstra's algorithm to suggest optimized alternate transit routes.
+
+* Stock & Inventory Intelligence
+  - Tracks stock levels at clinics and auto-generates restock requests when 
+    inventories fall below safety thresholds.
+
+* Dynamic Trust Engine
+  - Adjusts trust scores for Manufacturers, Suppliers, and Hospitals based on 
+    their history of successful match-ups and verification behaviors.
+
+* Public QR Code Verification
+  - Generates secure QR codes for packaging so anyone can scan and verify 
+    the medicine's authentic history.
