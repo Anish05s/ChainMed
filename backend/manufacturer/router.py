@@ -227,7 +227,8 @@ def create_shipment(
     db.add(shipment)
     db.flush()
 
-    qr_code_url = generate_shipment_qr(shipment.id)
+    verification_url = f"{settings.PUBLIC_APP_URL}/shared/shipment/{shipment.id}"
+    qr_code_url = generate_shipment_qr(shipment.id, verification_url=verification_url)
     shipment.qr_code_url = qr_code_url
 
     signed_payload = {
@@ -254,8 +255,6 @@ def create_shipment(
     db.commit()
     db.refresh(shipment)
     db.refresh(approval_log)
-
-    verification_url = f"{settings.PUBLIC_APP_URL}/shared/shipment/{shipment.id}"
 
     return ShipmentResponse(
         id=shipment.id,

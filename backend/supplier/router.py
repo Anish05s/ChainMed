@@ -398,7 +398,8 @@ def dispatch_to_hospital(
     if stock:
         stock.quantity -= data.quantity
 
-    qr_path = generate_shipment_qr(shipment.id)
+    verification_url = f"{settings.PUBLIC_APP_URL}/shared/shipment/{shipment.id}"
+    qr_path = generate_shipment_qr(shipment.id, verification_url=verification_url)
     shipment.qr_code_url = qr_path
 
     signed_payload = {
@@ -434,7 +435,7 @@ def dispatch_to_hospital(
         shipment_code=shipment.shipment_code,
         quantity_dispatched=shipment.quantity_dispatched,
         qr_code_url=f"{settings.API_BASE_URL}{qr_path}",
-        verification_url=f"{settings.PUBLIC_APP_URL}/shared/shipment/{shipment.id}",
+        verification_url=verification_url,
         status=shipment.status,
         approval_log_id=approval_log.id,
     )
