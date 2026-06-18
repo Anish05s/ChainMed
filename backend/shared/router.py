@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from database import get_db
@@ -12,9 +12,16 @@ from models import (
     Supplier,
     Consumer,
 )
-from shared.schemas import ApprovalLogItem, PublicShipmentResponse, HandoffPublicItem
+from shared.schemas import ApprovalLogItem, PublicShipmentResponse, HandoffPublicItem, MedicineCatalogItem
+from models import MedicineCatalog
 
 router = APIRouter(prefix="/shared", tags=["Shared"])
+
+@router.get("/catalog/medicines", response_model=List[MedicineCatalogItem])
+def get_medicine_catalog(query: Optional[str] = None, db: Session = Depends(get_db)):
+    if query:
+        return db.query(MedicineCatalog).filter(MedicineCatalog.medicine_name.ilike(f"%{query}%")).limit(50).all()
+    return db.query(MedicineCatalog).limit(50).all()
 
 
 def _entity_name(db: Session, entity_id: Optional[str]) -> str:

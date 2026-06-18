@@ -91,6 +91,13 @@ class Consumer(Base):
     created_at = Column(DateTime, default=now)
 
 
+class MedicineCatalog(Base):
+    __tablename__ = "medicine_catalog"
+    id = Column(String, primary_key=True, default=gen_uuid)
+    medicine_name = Column(String, nullable=False, index=True)
+    pack_size_label = Column(String, nullable=False)
+    created_at = Column(DateTime, default=now)
+
 class MedicineBatch(Base):
     __tablename__ = "medicine_batches"
     id = Column(String, primary_key=True, default=gen_uuid)
@@ -98,6 +105,10 @@ class MedicineBatch(Base):
     name = Column(String, nullable=False)
     batch_number = Column(String, unique=True, nullable=False)
     quantity = Column(Integer, nullable=False)
+    # New fields for breakdown
+    medicine_type = Column(String, nullable=True)
+    pack_size = Column(String, nullable=True)
+    number_of_packs = Column(Integer, nullable=True)
     expiry_date = Column(DateTime, nullable=False)
     manufacturing_date = Column(DateTime, nullable=False)
     storage_temp_declared = Column(Float)

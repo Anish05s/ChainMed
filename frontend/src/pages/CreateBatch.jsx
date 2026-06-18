@@ -1,12 +1,14 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Layout from '../components/Layout'
-import { createBatch } from '../api/manufacturer'
+import { createBatch, searchCatalog } from '../api/manufacturer'
 
 const initialForm = {
   name: '',
   batch_number: '',
-  quantity: '',
+  medicine_type: 'tablets',
+  pack_size: '',
+  number_of_packs: '',
   manufacturing_date: '',
   expiry_date: '',
   storage_temp_declared: 25,
@@ -19,16 +21,74 @@ export default function CreateBatch() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(null)
   const [submitting, setSubmitting] = useState(false)
+  
+  // Autocomplete state
+  const [suggestions, setSuggestions] = useState([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [searchTimeout, setSearchTimeout] = useState(null)
+  const wrapperRef = useRef(null)
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
+        setShowSuggestions(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [wrapperRef])
 
   function update(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }))
   }
 
+  function generateBatchNumber(medicineName) {
+    const prefix = medicineName.substring(0, 3).toUpperCase()
+    const match = medicineName.match(/\d+/)
+    const dose = match ? match[0] : '00'
+    const suffix = Math.random().toString(36).substring(2, 6).toUpperCase()
+    return `${prefix}${dose}${suffix}`
+  }
+
+  function handleNameChange(e) {
+    const value = e.target.value
+    update('name', value)
+    
+    if (searchTimeout) clearTimeout(searchTimeout)
+    if (value.trim().length > 2) {
+      setSearchTimeout(setTimeout(async () => {
+        try {
+          const results = await searchCatalog(value)
+          setSuggestions(results || [])
+          setShowSuggestions(true)
+        } catch (err) {
+          console.error("Failed to fetch catalog", err)
+        }
+      }, 300))
+    } else {
+      setSuggestions([])
+      setShowSuggestions(false)
+    }
+  }
+
+  function handleSelectMedicine(med) {
+    const newBatchNum = generateBatchNumber(med.medicine_name)
+    setForm(prev => ({
+      ...prev,
+      name: med.medicine_name,
+      batch_number: newBatchNum,
+      pack_size: med.pack_size_label || '',
+      medicine_type: med.pack_size_label.toLowerCase().includes('syrup') ? 'syrup' : 
+                     med.pack_size_label.toLowerCase().includes('capsule') ? 'capsules' : 'tablets'
+    }))
+    setShowSuggestions(false)
+  }
+
   function handleReview(e) {
     e.preventDefault()
     setError('')
-    if (!form.name.trim() || !form.batch_number.trim() || !form.quantity) {
-      setError('Fill in medicine name, batch number, and quantity.')
+    if (!form.name.trim() || !form.batch_number.trim() || !form.number_of_packs) {
+      setError('Fill in medicine name, batch number, and number of units.')
       return
     }
     if (!form.manufacturing_date || !form.expiry_date) {
@@ -45,11 +105,20 @@ export default function CreateBatch() {
   async function handleConfirm() {
     setError('')
     setSubmitting(true)
+    
+    // Auto-calculate total quantity based on pack size
+    const match = form.pack_size.match(/\d+/)
+    const sizeMultiplier = match ? parseInt(match[0], 10) : 1
+    const totalQuantity = Number(form.number_of_packs) * sizeMultiplier
+
     try {
       const payload = {
         name: form.name.trim(),
         batch_number: form.batch_number.trim(),
-        quantity: Number(form.quantity),
+        medicine_type: form.medicine_type,
+        pack_size: form.pack_size.trim(),
+        number_of_packs: Number(form.number_of_packs),
+        quantity: totalQuantity,
         storage_temp_declared: Number(form.storage_temp_declared),
         manufacturing_date: `${form.manufacturing_date}T00:00:00`,
         expiry_date: `${form.expiry_date}T00:00:00`,
@@ -75,7 +144,7 @@ export default function CreateBatch() {
       <div className="mt-6 max-w-xl animate-slide-up">
         <h1 className="text-2xl font-black mb-2" style={{ color: 'var(--text-base)' }}>New Batch</h1>
         <p className="text-xs font-semibold mb-6" style={{ color: 'var(--text-light)' }}>
-          Enter details, review them, then confirm. Creates batch + approval log.
+          Search for a medicine from the catalog. Batch numbers will auto-generate.
         </p>
 
         {error && (
@@ -98,37 +167,80 @@ export default function CreateBatch() {
             className="rounded-xl p-6 space-y-4"
             style={{ background: '#ffffff', border: '1px solid var(--border)', boxShadow: 'var(--shadow-md)' }}
           >
-            <Field label="Medicine name">
-              <input
-                required
-                className="w-full px-4 py-3 text-sm"
-                value={form.name}
-                onChange={(e) => update('name', e.target.value)}
-                placeholder="Paracetamol 500mg"
-              />
-            </Field>
+            <div className="relative" ref={wrapperRef}>
+              <Field label="Medicine name">
+                <input
+                  required
+                  className="w-full px-4 py-3 text-sm"
+                  value={form.name}
+                  onChange={handleNameChange}
+                  onFocus={() => { if(suggestions.length > 0) setShowSuggestions(true) }}
+                  placeholder="Start typing medicine name..."
+                  autoComplete="off"
+                />
+              </Field>
+              {showSuggestions && suggestions.length > 0 && (
+                <ul className="absolute z-10 w-full mt-1 bg-white border rounded-xl shadow-lg max-h-60 overflow-auto" style={{ borderColor: 'var(--border)' }}>
+                  {suggestions.map((med) => (
+                    <li 
+                      key={med.id} 
+                      className="px-4 py-3 hover:bg-slate-50 cursor-pointer border-b last:border-0"
+                      onClick={() => handleSelectMedicine(med)}
+                    >
+                      <div className="font-bold text-sm" style={{ color: 'var(--text-base)' }}>{med.medicine_name}</div>
+                      <div className="text-xs text-slate-500 mt-1">{med.pack_size_label}</div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
 
             <Field label="Batch number">
               <input
                 required
-                className="w-full px-4 py-3 text-sm"
+                className="w-full px-4 py-3 text-sm bg-slate-50"
                 value={form.batch_number}
                 onChange={(e) => update('batch_number', e.target.value)}
-                placeholder="AZMFDPM203L"
+                placeholder="Auto-generated or type manually"
               />
             </Field>
 
-            <Field label="Quantity (units)">
-              <input
-                required
-                type="number"
-                min={1}
-                className="w-full px-4 py-3 text-sm"
-                value={form.quantity}
-                onChange={(e) => update('quantity', e.target.value)}
-                placeholder="15000"
-              />
-            </Field>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <Field label="Medicine Type">
+                <select
+                  className="w-full px-4 py-3 text-sm"
+                  value={form.medicine_type}
+                  onChange={(e) => update('medicine_type', e.target.value)}
+                >
+                  <option value="tablets">Tablets</option>
+                  <option value="capsules">Capsules</option>
+                  <option value="syrup">Syrup</option>
+                  <option value="other">Other</option>
+                </select>
+              </Field>
+              
+              <Field label="Size">
+                <input
+                  required
+                  className="w-full px-4 py-3 text-sm"
+                  value={form.pack_size}
+                  onChange={(e) => update('pack_size', e.target.value)}
+                  placeholder="e.g. 10 per strip"
+                />
+              </Field>
+
+              <Field label="No. of units">
+                <input
+                  required
+                  type="number"
+                  min={1}
+                  className="w-full px-4 py-3 text-sm"
+                  value={form.number_of_packs}
+                  onChange={(e) => update('number_of_packs', e.target.value)}
+                  placeholder="e.g. 10000"
+                />
+              </Field>
+            </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Field label="Manufacturing date">
@@ -177,7 +289,8 @@ export default function CreateBatch() {
             <dl className="text-sm space-y-2">
               <Row label="Medicine" value={form.name} />
               <Row label="Batch number" value={form.batch_number} />
-              <Row label="Quantity" value={`${form.quantity} units`} />
+              <Row label="Type & Size" value={`${form.medicine_type} | ${form.pack_size}`} />
+              <Row label="Number of packs" value={form.number_of_packs} />
               <Row label="Manufactured" value={form.manufacturing_date} />
               <Row label="Expires" value={form.expiry_date} />
               <Row label="Storage temp" value={`${form.storage_temp_declared} °C`} />

@@ -6,6 +6,9 @@ from pydantic import BaseModel, Field
 class BatchCreateRequest(BaseModel):
     name: str
     batch_number: str = Field(..., min_length=1)
+    medicine_type: Optional[str] = None
+    pack_size: Optional[str] = None
+    number_of_packs: Optional[int] = None
     quantity: int = Field(..., gt=0)
     expiry_date: datetime
     manufacturing_date: datetime

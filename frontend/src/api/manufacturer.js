@@ -19,3 +19,9 @@ export async function createShipment(payload) {
   const { data } = await api.post('/manufacturer/shipments', payload)
   return data
 }
+
+export async function searchCatalog(query) {
+  const q = query ? `?query=${encodeURIComponent(query)}` : ''
+  const { data } = await api.get(`/shared/catalog/medicines${q}`)
+  return data
+}
