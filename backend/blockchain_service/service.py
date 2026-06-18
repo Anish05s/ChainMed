@@ -18,6 +18,7 @@ REAL MODE (set ETHEREUM_RPC_URL, ETHEREUM_PRIVATE_KEY, CONTRACT_ADDRESS):
 import hashlib
 import json
 import logging
+import threading
 from typing import Optional
 
 logger = logging.getLogger(__name__)
@@ -108,6 +109,10 @@ class BlockchainService:
 
     def __init__(self, rpc_url: str, private_key: str, contract_address: str):
         self._mock_mode = not (rpc_url and private_key and contract_address)
+        # Lock + local nonce counter to prevent nonce collisions when
+        # multiple background tasks fire within the same block window.
+        self._nonce_lock = threading.Lock()
+        self._local_nonce: Optional[int] = None
 
         if self._mock_mode:
             logger.info(
@@ -170,8 +175,18 @@ class BlockchainService:
             return tx_hash
 
         try:
-            nonce = self._w3.eth.get_transaction_count(self._account.address)
-            
+            # ── Nonce management: use a local counter to avoid collisions ──
+            # Fetching nonce from network inside rapid back-to-back calls returns
+            # the same value (pending txns not yet confirmed), causing rejections.
+            # We keep a local counter, resetting to network count only on error.
+            with self._nonce_lock:
+                if self._local_nonce is None:
+                    self._local_nonce = self._w3.eth.get_transaction_count(
+                        self._account.address, "pending"
+                    )
+                nonce = self._local_nonce
+                self._local_nonce += 1
+
             # Build transaction with EIP-1559 gas (type 0x2)
             tx = self._contract.functions.recordHandoff(
                 shipment_id, data_hash, status, risk_int
@@ -217,11 +232,13 @@ class BlockchainService:
             return tx_hash
             
         except ValueError as ve:
-            # Likely contract/address mismatch or encoding error
+            # Likely contract/address mismatch or encoding error; reset local nonce
             logger.error(
                 "[BLOCKCHAIN] ValueError (likely contract/encoding): %s | Shipment: %s",
                 ve, shipment_id
             )
+            with self._nonce_lock:
+                self._local_nonce = None  # force re-sync from network next time
             return _mock_tx_hash(shipment_id, data_hash)
         except Exception as exc:
             logger.error(
@@ -229,6 +246,8 @@ class BlockchainService:
                 "Next steps: Check wallet owns contract, check ETH balance, verify contract ABI",
                 exc, shipment_id
             )
+            with self._nonce_lock:
+                self._local_nonce = None  # force re-sync from network next time
             return _mock_tx_hash(shipment_id, data_hash)
 
     def flag_shipment(self, shipment_id: str, reason: str) -> Optional[str]:
@@ -240,7 +259,14 @@ class BlockchainService:
             return tx_hash
 
         try:
-            nonce = self._w3.eth.get_transaction_count(self._account.address)
+            with self._nonce_lock:
+                if self._local_nonce is None:
+                    self._local_nonce = self._w3.eth.get_transaction_count(
+                        self._account.address, "pending"
+                    )
+                nonce = self._local_nonce
+                self._local_nonce += 1
+
             tx = self._contract.functions.flagShipment(
                 shipment_id, reason
             ).build_transaction({
@@ -254,6 +280,8 @@ class BlockchainService:
             return tx_hash_bytes.hex()
         except Exception as exc:
             logger.error("Flag tx failed for %s: %s", shipment_id, exc)
+            with self._nonce_lock:
+                self._local_nonce = None  # force re-sync from network next time
             h = hashlib.sha256(f"flag:{shipment_id}:{reason}".encode()).hexdigest()
             return f"mock:flag:{h}"
 
