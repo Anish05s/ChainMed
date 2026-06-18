@@ -92,6 +92,8 @@ def _upsert_stock(
     entity_type: str,
     medicine_name: str,
     quantity_to_add: int,
+    pieces_per_pack: int = 1,
+    pack_size_label: Optional[str] = None,
     reorder_threshold: Optional[int] = None,
 ) -> StockLevel:
     stock = (
@@ -105,6 +107,9 @@ def _upsert_stock(
     )
     if stock:
         stock.quantity += quantity_to_add
+        stock.pieces_per_pack = pieces_per_pack
+        if pack_size_label:
+            stock.pack_size_label = pack_size_label
         if reorder_threshold is not None:
             stock.reorder_threshold = reorder_threshold
     else:
@@ -113,6 +118,8 @@ def _upsert_stock(
             entity_type=entity_type,
             medicine_name=medicine_name,
             quantity=quantity_to_add,
+            pieces_per_pack=pieces_per_pack,
+            pack_size_label=pack_size_label,
             reorder_threshold=reorder_threshold or 1000,
         )
         db.add(stock)
@@ -143,6 +150,8 @@ def list_incoming_shipments(
             quantity_dispatched=shipment.quantity_dispatched,
             status=shipment.status,
             from_entity_id=shipment.from_entity_id,
+            pieces_per_pack=batch.pieces_per_pack,
+            pack_size=batch.pack_size,
             created_at=shipment.created_at,
         )
         for shipment, batch in rows
@@ -221,6 +230,8 @@ def verify_incoming_shipment(
         entity_type="supplier",
         medicine_name=batch.name,
         quantity_to_add=data.quantity_reported,
+        pieces_per_pack=batch.pieces_per_pack,
+        pack_size_label=batch.pack_size,
     )
 
     notes = (
@@ -302,6 +313,8 @@ def list_dispatchable_batches(
                 quantity_received=received,
                 quantity_dispatched=dispatched,
                 quantity_remaining=remaining,
+                pieces_per_pack=batch.pieces_per_pack,
+                pack_size=batch.pack_size,
             )
         )
     items.sort(key=lambda x: x.medicine_name)

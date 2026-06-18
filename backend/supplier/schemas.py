@@ -12,6 +12,8 @@ class IncomingShipmentItem(BaseModel):
     quantity_dispatched: Optional[int] = None
     status: str
     from_entity_id: str
+    pieces_per_pack: int = 1
+    pack_size: Optional[str] = None
     created_at: Optional[datetime] = None
 
     class Config:
@@ -40,6 +42,8 @@ class InventoryItem(BaseModel):
     id: str
     medicine_name: str
     quantity: int
+    pieces_per_pack: int = 1
+    pack_size_label: Optional[str] = None
     reorder_threshold: int
     last_updated: Optional[datetime] = None
 
@@ -68,6 +72,8 @@ class DispatchableBatchItem(BaseModel):
     quantity_received: int
     quantity_dispatched: int
     quantity_remaining: int
+    pieces_per_pack: int = 1
+    pack_size: Optional[str] = None
 
 
 class OutboundShipmentCreate(BaseModel):

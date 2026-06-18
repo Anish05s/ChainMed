@@ -77,30 +77,38 @@ def _write_approval_log(
 def _upsert_stock(
     db: Session,
     entity_id: str,
+    entity_type: str,
     medicine_name: str,
     quantity_to_add: int,
+    pieces_per_pack: int = 1,
+    pack_size_label: Optional[str] = None,
     reorder_threshold: Optional[int] = None,
 ) -> StockLevel:
     stock = (
         db.query(StockLevel)
         .filter(
             StockLevel.entity_id == entity_id,
-            StockLevel.entity_type == "consumer",
+            StockLevel.entity_type == entity_type,
             StockLevel.medicine_name == medicine_name,
         )
         .first()
     )
     if stock:
         stock.quantity += quantity_to_add
+        stock.pieces_per_pack = pieces_per_pack
+        if pack_size_label:
+            stock.pack_size_label = pack_size_label
         if reorder_threshold is not None:
             stock.reorder_threshold = reorder_threshold
     else:
         stock = StockLevel(
             entity_id=entity_id,
-            entity_type="consumer",
+            entity_type=entity_type,
             medicine_name=medicine_name,
             quantity=quantity_to_add,
-            reorder_threshold=reorder_threshold or 500,
+            pieces_per_pack=pieces_per_pack,
+            pack_size_label=pack_size_label,
+            reorder_threshold=reorder_threshold or 1000,
         )
         db.add(stock)
     db.flush()
@@ -203,8 +211,11 @@ def confirm_receipt(
     stock = _upsert_stock(
         db,
         entity_id=consumer.id,
+        entity_type="consumer",
         medicine_name=batch.name,
         quantity_to_add=data.quantity_reported,
+        pieces_per_pack=batch.pieces_per_pack,
+        pack_size_label=batch.pack_size,
     )
 
     notes = (

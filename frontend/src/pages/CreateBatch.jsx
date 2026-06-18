@@ -118,6 +118,7 @@ export default function CreateBatch() {
         medicine_type: form.medicine_type,
         pack_size: form.pack_size.trim(),
         number_of_packs: Number(form.number_of_packs),
+        pieces_per_pack: sizeMultiplier,
         quantity: totalQuantity,
         storage_temp_declared: Number(form.storage_temp_declared),
         manufacturing_date: `${form.manufacturing_date}T00:00:00`,

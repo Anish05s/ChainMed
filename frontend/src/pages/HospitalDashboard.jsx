@@ -370,7 +370,14 @@ export default function HospitalDashboard() {
                           )}
                         </div>
                         <span className={`text-sm font-bold ${low ? 'text-red-500' : 'text-slate-800'}`}>
-                          {item.quantity?.toLocaleString()}
+                          {item.pieces_per_pack > 1 ? (
+                            <>
+                              {Math.floor(item.quantity / item.pieces_per_pack).toLocaleString()} packs
+                              {item.quantity % item.pieces_per_pack > 0 && `, ${item.quantity % item.pieces_per_pack} units`}
+                            </>
+                          ) : (
+                            `${item.quantity?.toLocaleString()} units`
+                          )}
                         </span>
                       </div>
                       {/* Stock bar */}

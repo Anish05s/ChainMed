@@ -90,6 +90,7 @@ def list_batches(
             expiry_date=batch.expiry_date,
             manufacturing_date=batch.manufacturing_date,
             storage_temp_declared=batch.storage_temp_declared,
+            pieces_per_pack=batch.pieces_per_pack,
             created_at=batch.created_at,
         )
         for batch in batches
@@ -128,6 +129,7 @@ def create_batch(
         medicine_type=data.medicine_type,
         pack_size=data.pack_size,
         number_of_packs=data.number_of_packs,
+        pieces_per_pack=data.pieces_per_pack,
         quantity=data.quantity,
         expiry_date=data.expiry_date,
         manufacturing_date=data.manufacturing_date,

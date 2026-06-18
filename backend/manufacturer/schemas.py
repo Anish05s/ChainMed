@@ -9,6 +9,7 @@ class BatchCreateRequest(BaseModel):
     medicine_type: Optional[str] = None
     pack_size: Optional[str] = None
     number_of_packs: Optional[int] = None
+    pieces_per_pack: int = Field(1, gt=0)
     quantity: int = Field(..., gt=0)
     expiry_date: datetime
     manufacturing_date: datetime
@@ -40,6 +41,7 @@ class BatchListItem(BaseModel):
     expiry_date: datetime
     manufacturing_date: datetime
     storage_temp_declared: Optional[float] = None
+    pieces_per_pack: int = 1
     created_at: Optional[datetime] = None
 
     class Config:

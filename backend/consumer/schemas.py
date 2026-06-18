@@ -40,6 +40,8 @@ class InventoryItem(BaseModel):
     id: str
     medicine_name: str
     quantity: int
+    pieces_per_pack: int = 1
+    pack_size_label: Optional[str] = None
     reorder_threshold: int
     last_updated: Optional[datetime] = None
 

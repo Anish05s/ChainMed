@@ -144,14 +144,15 @@ export default function SupplierDashboard() {
 
   async function handleDispatch(e) {
     e.preventDefault()
-    const qty = Number(dispatchForm.quantity)
+    const packs = Number(dispatchForm.quantity)
     const selected = dispatchableBatches.find(b => b.batch_id === dispatchForm.batch_id)
-    if (!qty || qty < 1) { flash('error', 'Enter a valid dispatch quantity'); return }
-    if (selected && qty > selected.quantity_remaining) { flash('error', `Only ${selected.quantity_remaining.toLocaleString()} units available`); return }
+    if (!packs || packs < 1) { flash('error', 'Enter a valid dispatch quantity'); return }
+    const qty = packs * (selected?.pieces_per_pack || 1)
+    if (selected && qty > selected.quantity_remaining) { flash('error', `Only ${Math.floor(selected.quantity_remaining / (selected?.pieces_per_pack || 1)).toLocaleString()} packs available`); return }
     setSubmitting(true)
     try {
       const res = await dispatchOutbound({ batch_id: dispatchForm.batch_id, to_entity_id: dispatchForm.to_entity_id, quantity: qty })
-      flash('success', `Dispatched ${res.quantity_dispatched?.toLocaleString()} units — ${res.shipment_code}`)
+      flash('success', `Dispatched ${Math.floor((res.quantity_dispatched || qty) / (selected?.pieces_per_pack || 1)).toLocaleString()} packs — ${res.shipment_code}`)
       setDispatchForm({ batch_id: '', to_entity_id: HOSPITAL_ID, quantity: '' }); load()
     } catch (err) {
       flash('error', err.response?.data?.detail || 'Dispatch failed')
@@ -272,7 +273,7 @@ export default function SupplierDashboard() {
                         <p className="text-xs mt-0.5 font-semibold" style={{ color: 'var(--text-light)' }}>Batch {s.batch_number}</p>
                         {s.quantity_dispatched != null && (
                           <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
-                            <span className="font-bold text-slate-800">{s.quantity_dispatched.toLocaleString()}</span> units dispatched
+                            <span className="font-bold text-slate-800">{Math.floor(s.quantity_dispatched / (s.pieces_per_pack || 1)).toLocaleString()}</span> packs dispatched
                           </p>
                         )}
                       </div>
@@ -301,9 +302,12 @@ export default function SupplierDashboard() {
                           <HandoffForm
                             submitLabel="Verify Receipt"
                             submitting={submitting}
-                            defaultQuantity={s.quantity_dispatched || 1000}
+                            defaultQuantity={Math.floor((s.quantity_dispatched || 0) / (s.pieces_per_pack || 1)) || 1000}
                             onCancel={() => setVerifyId(null)}
-                            onSubmit={(payload) => handleVerify(s.id, payload)}
+                            onSubmit={(payload) => handleVerify(s.id, {
+                              ...payload,
+                              quantity_reported: payload.quantity_reported * (s.pieces_per_pack || 1)
+                            })}
                           />
                         </div>
                       ) : (
@@ -348,7 +352,7 @@ export default function SupplierDashboard() {
                     <option value="">Select batch…</option>
                     {dispatchableBatches.map(b => (
                       <option key={b.batch_id} value={b.batch_id}>
-                        {b.medicine_name} — {b.batch_number} ({b.quantity_remaining?.toLocaleString()} left)
+                        {b.medicine_name} — {b.batch_number} ({Math.floor((b.quantity_remaining ?? 0) / (b.pieces_per_pack || 1)).toLocaleString()} packs left)
                       </option>
                     ))}
                   </Select>
@@ -356,19 +360,19 @@ export default function SupplierDashboard() {
 
                 {selectedBatch && (
                   <div className="p-3 rounded-xl text-xs space-y-1" style={{ background: 'var(--bg-base)', border: '1px solid var(--border)' }}>
-                    <div className="flex justify-between"><span style={{ color: 'var(--text-light)' }}>Received</span><span className="font-bold text-slate-800">{selectedBatch.quantity_received?.toLocaleString()}</span></div>
-                    <div className="flex justify-between"><span style={{ color: 'var(--text-light)' }}>Already sent</span><span className="font-bold text-slate-800">{selectedBatch.quantity_dispatched?.toLocaleString()}</span></div>
-                    <div className="flex justify-between"><span style={{ color: 'var(--text-light)' }}>Available</span><span className="font-bold" style={{ color: 'var(--emerald)' }}>{dispatchRem.toLocaleString()}</span></div>
+                    <div className="flex justify-between"><span style={{ color: 'var(--text-light)' }}>Received</span><span className="font-bold text-slate-800">{Math.floor((selectedBatch.quantity_received ?? 0) / (selectedBatch.pieces_per_pack || 1)).toLocaleString()} packs</span></div>
+                    <div className="flex justify-between"><span style={{ color: 'var(--text-light)' }}>Already sent</span><span className="font-bold text-slate-800">{Math.floor((selectedBatch.quantity_dispatched ?? 0) / (selectedBatch.pieces_per_pack || 1)).toLocaleString()} packs</span></div>
+                    <div className="flex justify-between"><span style={{ color: 'var(--text-light)' }}>Available</span><span className="font-bold" style={{ color: 'var(--emerald)' }}>{Math.floor(dispatchRem / (selectedBatch.pieces_per_pack || 1)).toLocaleString()} packs</span></div>
                   </div>
                 )}
 
-                <Field label="Quantity">
-                  <Input type="number" required min={1} max={dispatchRem || undefined} disabled={!selectedBatch}
-                    value={dispatchForm.quantity} onChange={e => setDispatchForm(f => ({ ...f, quantity: e.target.value }))} />
+                <Field label="Packs to dispatch">
+                  <Input type="number" required min={1} max={Math.floor(dispatchRem / (selectedBatch?.pieces_per_pack || 1)) || undefined} disabled={!selectedBatch}
+                    value={dispatchForm.quantity} onChange={e => setDispatchForm(f => ({ ...f, quantity: e.target.value }))} placeholder="Number of strips/boxes" />
                   {selectedBatch && (
                     <button type="button" className="mt-1 text-xs font-semibold transition-opacity hover:opacity-70" style={{ color: 'var(--cyan)' }}
-                      onClick={() => setDispatchForm(f => ({ ...f, quantity: String(dispatchRem) }))}>
-                      Dispatch all ({dispatchRem.toLocaleString()})
+                      onClick={() => setDispatchForm(f => ({ ...f, quantity: String(Math.floor(dispatchRem / selectedBatch.pieces_per_pack)) }))}>
+                      Dispatch all ({Math.floor(dispatchRem / selectedBatch.pieces_per_pack).toLocaleString()} packs)
                     </button>
                   )}
                 </Field>
@@ -401,7 +405,7 @@ export default function SupplierDashboard() {
                     style={{ borderBottom: '1px solid var(--border)' }}>
                     <span className="font-semibold" style={{ color: 'var(--text-muted)' }}>{item.medicine_name}</span>
                     <div className="text-right">
-                      <span className="font-bold text-slate-800">{item.quantity?.toLocaleString()}</span>
+                      <span className="font-bold text-slate-800">{Math.floor(item.quantity / (item.pieces_per_pack || 1)).toLocaleString()} packs</span>
                       {item.quantity < item.reorder_threshold && (
                         <span className="ml-2 text-xs font-bold px-1.5 py-0.5 rounded" style={{ background: 'rgba(217,119,6,0.1)', color: 'var(--amber)' }}>Low</span>
                       )}

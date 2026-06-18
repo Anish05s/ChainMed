@@ -52,13 +52,16 @@ export default function DispatchShipment() {
     setError('')
     setResult(null)
 
-    const qty = Number(form.quantity)
-    if (!qty || qty < 1) {
+    const packs = Number(form.quantity)
+    if (!packs || packs < 1) {
       setError('Enter a valid dispatch quantity')
       return
     }
+    
+    const qty = packs * (selectedBatch?.pieces_per_pack || 1)
+    
     if (qty > remaining) {
-      setError(`Only ${remaining.toLocaleString()} units available for this batch`)
+      setError(`Only ${Math.floor(remaining / (selectedBatch?.pieces_per_pack || 1)).toLocaleString()} packs available for this batch`)
       return
     }
 
@@ -138,8 +141,8 @@ export default function DispatchShipment() {
               <option value="">Select batch…</option>
               {batches.map((b) => (
                 <option key={b.id} value={b.id}>
-                  {b.name} — {b.batch_number} ({b.quantity_remaining?.toLocaleString()} of{' '}
-                  {b.quantity?.toLocaleString()} left)
+                  {b.name} — {b.batch_number} ({Math.floor((b.quantity_remaining ?? 0) / b.pieces_per_pack).toLocaleString()} of{' '}
+                  {Math.floor((b.quantity ?? 0) / b.pieces_per_pack).toLocaleString()} packs left)
                 </option>
               ))}
             </select>
@@ -147,31 +150,32 @@ export default function DispatchShipment() {
 
           {selectedBatch && (
             <div className="text-xs rounded-xl px-3 py-2 space-y-1 font-semibold" style={{ background: 'var(--bg-base)', border: '1px solid var(--border)' }}>
-              <div className="flex justify-between"><span style={{ color: 'var(--text-light)' }}>Batch Total</span><span className="font-bold text-slate-800">{selectedBatch.quantity?.toLocaleString()} units</span></div>
-              <div className="flex justify-between"><span style={{ color: 'var(--text-light)' }}>Already Dispatched</span><span className="font-bold text-slate-800">{selectedBatch.quantity_dispatched?.toLocaleString() ?? 0}</span></div>
-              <div className="flex justify-between"><span style={{ color: 'var(--text-light)' }}>Available to Ship</span><span className="font-bold text-emerald-600">{remaining.toLocaleString()}</span></div>
+              <div className="flex justify-between"><span style={{ color: 'var(--text-light)' }}>Batch Total</span><span className="font-bold text-slate-800">{Math.floor(selectedBatch.quantity / selectedBatch.pieces_per_pack).toLocaleString()} packs</span></div>
+              <div className="flex justify-between"><span style={{ color: 'var(--text-light)' }}>Already Dispatched</span><span className="font-bold text-slate-800">{Math.floor((selectedBatch.quantity_dispatched ?? 0) / selectedBatch.pieces_per_pack).toLocaleString()} packs</span></div>
+              <div className="flex justify-between"><span style={{ color: 'var(--text-light)' }}>Available to Ship</span><span className="font-bold text-emerald-600">{Math.floor(remaining / selectedBatch.pieces_per_pack).toLocaleString()} packs</span></div>
             </div>
           )}
 
-          <Field label="Quantity to dispatch">
+          <Field label="Packs to dispatch">
             <input
               required
               type="number"
               min={1}
-              max={remaining || undefined}
+              max={Math.floor(remaining / selectedBatch?.pieces_per_pack) || undefined}
               disabled={!selectedBatch}
               className="w-full px-4 py-3 text-sm"
               value={form.quantity}
               onChange={(e) => setForm((f) => ({ ...f, quantity: e.target.value }))}
+              placeholder="Number of strips/boxes"
             />
             {selectedBatch && (
               <button
                 type="button"
                 className="mt-1 text-xs font-bold transition-opacity hover:opacity-85"
                 style={{ color: 'var(--cyan)' }}
-                onClick={() => setForm((f) => ({ ...f, quantity: String(remaining) }))}
+                onClick={() => setForm((f) => ({ ...f, quantity: String(Math.floor(remaining / selectedBatch.pieces_per_pack)) }))}
               >
-                Dispatch all remaining ({remaining.toLocaleString()})
+                Dispatch all remaining ({Math.floor(remaining / selectedBatch.pieces_per_pack).toLocaleString()} packs)
               </button>
             )}
           </Field>

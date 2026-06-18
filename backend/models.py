@@ -109,6 +109,7 @@ class MedicineBatch(Base):
     medicine_type = Column(String, nullable=True)
     pack_size = Column(String, nullable=True)
     number_of_packs = Column(Integer, nullable=True)
+    pieces_per_pack = Column(Integer, default=1)
     expiry_date = Column(DateTime, nullable=False)
     manufacturing_date = Column(DateTime, nullable=False)
     storage_temp_declared = Column(Float)
@@ -160,6 +161,8 @@ class StockLevel(Base):
     entity_type = Column(String, nullable=False)
     medicine_name = Column(String, nullable=False)
     quantity = Column(Integer, default=0)
+    pieces_per_pack = Column(Integer, default=1)
+    pack_size_label = Column(String, nullable=True)
     reorder_threshold = Column(Integer, default=1000)
     last_updated = Column(DateTime, default=now)
 
