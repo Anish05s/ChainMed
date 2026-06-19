@@ -98,6 +98,7 @@ def _create_entity(db: Session, data: RegisterRequest) -> str:
 
 
 @router.post("/register", response_model=TokenResponse)
+@limiter.limit("5/minute")
 def register(request: Request, data: RegisterRequest, db: Session = Depends(get_db)):
     if data.role not in VALID_ROLES:
         raise HTTPException(status_code=400, detail="Role must be manufacturer, supplier, or consumer")
@@ -150,6 +151,7 @@ def register(request: Request, data: RegisterRequest, db: Session = Depends(get_
     )
 
 @router.post("/login", response_model=TokenResponse)
+@limiter.limit("5/minute")
 def login(request: Request, data: LoginRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == data.email).first()
     if not user or not verify_password(data.password, user.hashed_password):
