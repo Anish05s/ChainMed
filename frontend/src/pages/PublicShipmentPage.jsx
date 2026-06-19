@@ -140,7 +140,28 @@ export default function PublicShipmentPage() {
                     <div className="px-3 py-2 rounded-xl text-xs font-semibold" style={{ background: 'rgba(217,119,6,0.06)', border: '1px solid rgba(217,119,6,0.15)', color: 'var(--amber)' }}>
                       ⏳ Awaiting on-chain record (blockchain tx pending)
                     </div>
+                  {data.override_details && (
+                    <div className="mt-4 p-4 rounded-xl border" style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.2)' }}>
+                      <p className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: '#d97706' }}>⚠️ Multi-Sig Admin Override</p>
+                      <p className="text-sm font-semibold mb-1" style={{ color: 'var(--text-base)' }}>Justification: {data.override_details.justification}</p>
+                      {data.override_details.ai_cross_check && (
+                        <p className="text-xs italic mb-2" style={{ color: 'var(--text-muted)' }}>AI Check: {data.override_details.ai_cross_check}</p>
+                      )}
+                      <p className="text-xs" style={{ color: 'var(--text-light)' }}>Approved by: {data.override_details.approvers.join(', ')}</p>
+                      
+                      {data.override_blockchain_hash && (
+                        <div className="mt-2">
+                          <p className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: 'var(--text-light)' }}>⛓ Override TX Hash</p>
+                          <code className="block px-3 py-2 rounded-xl text-xs break-all"
+                            style={isReal
+                              ? { background: 'rgba(5,150,105,0.06)', border: '1px solid rgba(5,150,105,0.2)', color: '#059669' }
+                              : { background: 'rgba(124,58,237,0.06)', border: '1px solid rgba(124,58,237,0.2)', color: '#7c3aed' }
+                            }>{data.override_blockchain_hash}</code>
+                        </div>
+                      )}
+                    </div>
                   )}
+
                 </div>
               </div>
             </div>

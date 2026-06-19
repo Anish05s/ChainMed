@@ -119,3 +119,48 @@ Write the report now. Keep it factual, professional, and under 160 words.
     except Exception as exc:  # noqa: BLE001
         logger.error("[LLM Investigator] Gemini API call failed: %s", exc)
         return ""
+
+
+def cross_check_override(
+    *,
+    risk_score: float,
+    triggered_rules: str,
+    mismatch_details: str,
+    admin_justification: str,
+) -> str:
+    """
+    Call Gemini Flash to independently evaluate an admin's justification
+    for overriding a flagged shipment.
+    """
+    model = _get_model()
+    if model is None:
+        return ""
+
+    prompt = f"""You are a pharmaceutical supply chain compliance auditor AI.
+    
+An admin has requested to override a system flag on a shipment. 
+Your job is to cross-check their justification against the original flag data.
+
+--- ORIGINAL FLAG DATA ---
+Risk Score       : {risk_score}/100
+Triggered Rules  : {triggered_rules}
+Mismatch Details : {mismatch_details}
+
+--- ADMIN's JUSTIFICATION FOR OVERRIDE ---
+{admin_justification}
+
+Task:
+1. State your confidence (0-100%) in the admin's justification based on the facts provided.
+2. Briefly explain if the justification adequately addresses the specific mismatch details and rules triggered.
+3. Conclude with either "RECOMMEND APPROVAL" or "RECOMMEND REJECTION".
+
+Keep your response under 100 words. Be direct and objective.
+"""
+
+    try:
+        response = model.generate_content(prompt)
+        return response.text.strip()
+    except Exception as exc:
+        logger.error("[LLM Investigator] Gemini override cross-check failed: %s", exc)
+        return ""
+

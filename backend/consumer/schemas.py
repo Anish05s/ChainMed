@@ -56,9 +56,8 @@ class InventoryUpdateRequest(BaseModel):
 
 
 class StockRequestCreate(BaseModel):
-    target_entity_id: str
     medicine_name: str
-    quantity_requested: int = Field(..., gt=0)
+    quantity_requested: int
     reason: str
     urgency: str = "normal"
 

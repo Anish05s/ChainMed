@@ -1,0 +1,6 @@
+{
+    "trials": 1000,
+    "avg_latency_ms": 0.0020197000003463472,
+    "fpr_percentage": 0.0,
+    "fnr_percentage": 0.0
+}

@@ -34,3 +34,13 @@ export async function createRestockRequest(payload) {
   const { data } = await api.post('/supplier/restock-requests', payload)
   return data
 }
+
+export async function getMyRestockRequests() {
+  const { data } = await api.get('/supplier/restock-requests/mine')
+  return data
+}
+
+export async function resolveRestockRequest(id) {
+  const { data } = await api.post(`/supplier/restock-requests/${id}/resolve`)
+  return data
+}

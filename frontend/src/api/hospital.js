@@ -34,3 +34,13 @@ export async function getStockClearances() {
   const { data } = await api.get('/consumer/inventory/clearances')
   return data
 }
+
+export async function getMyRestockRequests() {
+  const { data } = await api.get('/consumer/restock-requests/mine')
+  return data
+}
+
+export async function resolveRestockRequest(id) {
+  const { data } = await api.post(`/consumer/restock-requests/${id}/resolve`)
+  return data
+}

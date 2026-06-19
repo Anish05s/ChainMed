@@ -260,6 +260,23 @@ def verify_incoming_shipment(
     db.refresh(handoff)
     db.refresh(approval_log)
 
+    # Auto-resolve any pending emergency restock requests for this medicine
+    pending_request = (
+        db.query(RestockRequest)
+        .filter(
+            RestockRequest.requester_entity_id == supplier.id,
+            RestockRequest.requester_type == "supplier",
+            RestockRequest.medicine_name == batch.name,
+            RestockRequest.status == "pending"
+        )
+        .first()
+    )
+    if pending_request:
+        pending_request.status = "resolved"
+        # Append a note to the approval log that it resolved an emergency
+        approval_log.notes = str(approval_log.notes) + f" [Auto-resolved Emergency Request for {batch.name}]"
+        db.commit()
+
     # Trigger three-party verification AI + blockchain (non-blocking)
     verification_result = trigger_verification_and_blockchain(
         shipment_id=shipment.id,
@@ -493,6 +510,8 @@ def update_inventory(
     return stock
 
 
+from shared.dijkstra import find_best_restock_route
+
 @router.post(
     "/restock-requests",
     response_model=RestockRequestResponse,
@@ -505,14 +524,21 @@ def create_restock_request(
 ):
     supplier = _get_supplier(db, current_user.entity_id)
 
-    manufacturer = (
-        db.query(Manufacturer).filter(Manufacturer.id == data.target_entity_id).first()
-    )
-    if not manufacturer:
+    # Use Dijkstra to find the best manufacturer
+    route = find_best_restock_route(db, supplier.id, "supplier", data.medicine_name, data.quantity_requested)
+    
+    if not route or len(route) < 2:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Target manufacturer not found",
+            detail="No registered manufacturer found in the network."
         )
+        
+    target_manufacturer_id = route[1]
+    manufacturer = (
+        db.query(Manufacturer).filter(Manufacturer.id == target_manufacturer_id).first()
+    )
+    if not manufacturer:
+        raise HTTPException(status_code=404, detail="Resolved manufacturer not found")
 
     request = RestockRequest(
         requester_entity_id=supplier.id,
@@ -534,7 +560,7 @@ def create_restock_request(
         entity_id=request.id,
         entity_type="restock_request",
         notes=(
-            f"Emergency restock to {manufacturer.name}: "
+            f"Emergency restock routed via Dijkstra to {manufacturer.name}: "
             f"{data.medicine_name} × {data.quantity_requested} · {data.reason}"
         ),
     )
@@ -553,6 +579,60 @@ def create_restock_request(
         status=request.status,
         approval_log_id=approval_log.id,
     )
+
+
+@router.get("/restock-requests/mine", response_model=List[RestockRequestResponse])
+def get_my_restock_requests(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_supplier),
+):
+    supplier = _get_supplier(db, current_user.entity_id)
+    requests = (
+        db.query(RestockRequest)
+        .filter(
+            RestockRequest.requester_entity_id == supplier.id,
+            RestockRequest.requester_type == "supplier",
+        )
+        .order_by(RestockRequest.created_at.desc())
+        .all()
+    )
+    return [
+        RestockRequestResponse(
+            id=r.id,
+            requester_entity_id=r.requester_entity_id,
+            target_entity_id=r.target_entity_id,
+            medicine_name=r.medicine_name,
+            quantity_requested=r.quantity_requested,
+            reason=r.reason,
+            urgency=r.urgency,
+            status=r.status,
+            approval_log_id=None,
+        )
+        for r in requests
+    ]
+
+
+@router.post("/restock-requests/{request_id}/resolve")
+def resolve_restock_request(
+    request_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_supplier),
+):
+    supplier = _get_supplier(db, current_user.entity_id)
+    
+    req = db.query(RestockRequest).filter(RestockRequest.id == request_id).first()
+    if not req:
+        raise HTTPException(status_code=404, detail="Request not found")
+        
+    if req.requester_entity_id != supplier.id or req.requester_type != "supplier":
+        raise HTTPException(status_code=403, detail="Not authorized to resolve this request")
+        
+    if req.status == "resolved":
+        return {"status": "already_resolved"}
+        
+    req.status = "resolved"
+    db.commit()
+    return {"status": "resolved"}
 
 
 @router.get("/emergency-notifications", response_model=List[EmergencyNotificationItem])

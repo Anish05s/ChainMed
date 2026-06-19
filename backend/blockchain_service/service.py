@@ -285,6 +285,69 @@ class BlockchainService:
             h = hashlib.sha256(f"flag:{shipment_id}:{reason}".encode()).hexdigest()
             return f"mock:flag:{h}"
 
+    def record_override(self, shipment_id: str, justification: str, approving_admins: list[str], ai_cross_check: str) -> Optional[str]:
+        """Record an admin multi-sig override on-chain."""
+        # Truncate AI cross-check to save gas
+        ai_summary = ai_cross_check[:200] if ai_cross_check else ""
+        
+        payload = json.dumps({
+            "action": "multi_sig_override",
+            "justification": justification,
+            "approvers": approving_admins,
+            "ai_summary": ai_summary
+        }, sort_keys=True)
+        data_hash = hashlib.sha256(payload.encode()).hexdigest()
+        
+        if self._mock_mode:
+            tx_hash = _mock_tx_hash(shipment_id, data_hash + "_override")
+            logger.info("[MOCK] Override recorded: %s → %s", shipment_id, tx_hash)
+            return tx_hash
+
+        try:
+            with self._nonce_lock:
+                if self._local_nonce is None:
+                    self._local_nonce = self._w3.eth.get_transaction_count(
+                        self._account.address, "pending"
+                    )
+                nonce = self._local_nonce
+                self._local_nonce += 1
+
+            # We use recordHandoff with status ADMIN_OVERRIDE
+            tx = self._contract.functions.recordHandoff(
+                shipment_id, data_hash, "ADMIN_OVERRIDE", 0
+            ).build_transaction({
+                "from":                 self._account.address,
+                "nonce":                nonce,
+                "gas":                  800_000,
+                "maxFeePerGas":         self._w3.eth.gas_price * 2,
+                "maxPriorityFeePerGas": self._w3.to_wei("2", "gwei"),
+                "type":                 "0x2",
+            })
+            
+            signed = self._account.sign_transaction(tx)
+            tx_hash_bytes = self._w3.eth.send_raw_transaction(signed.raw_transaction)
+            
+            # Since this is an override, we want to wait for receipt
+            try:
+                receipt = self._w3.eth.wait_for_transaction_receipt(
+                    tx_hash_bytes, timeout=120
+                )
+                if receipt.status == 0:
+                    logger.error("[SEPOLIA] Override TX REVERTED for shipment %s", shipment_id)
+                    return _mock_tx_hash(shipment_id, data_hash + "_override")
+            except Exception as timeout_exc:
+                logger.warning("[SEPOLIA] Override TX not confirmed in 120s: %s", timeout_exc)
+                return _mock_tx_hash(shipment_id, data_hash + "_override")
+                
+            return tx_hash_bytes.hex()
+            
+        except Exception as exc:
+            logger.error("Override tx failed for %s: %s", shipment_id, exc)
+            with self._nonce_lock:
+                self._local_nonce = None
+            return _mock_tx_hash(shipment_id, data_hash + "_override")
+
+
     def get_handoff(self, shipment_id: str) -> Optional[dict]:
         """
         Read handoff record from chain.

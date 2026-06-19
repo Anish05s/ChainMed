@@ -81,6 +81,28 @@ def get_public_shipment(shipment_id: str, db: Session = Depends(get_db)):
         else batch.quantity
     )
 
+    override_details = None
+    from models import AdminOverrideRequest, AdminOverrideVote
+    from shared.schemas import OverrideSummary
+    
+    if shipment.override_blockchain_hash:
+        override_req = db.query(AdminOverrideRequest).filter(
+            AdminOverrideRequest.shipment_id == shipment.id,
+            AdminOverrideRequest.status == "executed"
+        ).order_by(AdminOverrideRequest.executed_at.desc()).first()
+        
+        if override_req:
+            votes = db.query(AdminOverrideVote).filter(
+                AdminOverrideVote.override_request_id == override_req.id,
+                AdminOverrideVote.vote == "approve"
+            ).all()
+            
+            override_details = OverrideSummary(
+                justification=override_req.justification,
+                ai_cross_check=override_req.ai_cross_check,
+                approvers=[v.admin_name for v in votes]
+            )
+
     return PublicShipmentResponse(
         id=shipment.id,
         shipment_code=shipment.shipment_code,
@@ -94,6 +116,9 @@ def get_public_shipment(shipment_id: str, db: Session = Depends(get_db)):
         to_entity_name=_entity_name(db, shipment.to_entity_id),
         qr_code_url=_full_qr_url(shipment.qr_code_url),
         blockchain_hash=shipment.blockchain_hash,
+        override_blockchain_hash=shipment.override_blockchain_hash,
+        override_details=override_details,
         handoffs=[HandoffPublicItem.model_validate(h) for h in handoffs],
         approval_logs=[ApprovalLogItem.model_validate(log) for log in logs],
     )
+

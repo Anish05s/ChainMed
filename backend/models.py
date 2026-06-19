@@ -90,6 +90,21 @@ class Consumer(Base):
     private_key_pem = Column(Text, nullable=True)
     created_at = Column(DateTime, default=now)
 
+class TradePartnership(Base):
+    """
+    Defines a registered partnership between two entities (e.g. Manufacturer->Supplier or Supplier->Consumer).
+    Used for Dijkstra network pathfinding.
+    """
+    __tablename__ = "trade_partnerships"
+    id = Column(String, primary_key=True, default=gen_uuid)
+    from_entity_id = Column(String, nullable=False) # The one supplying
+    to_entity_id = Column(String, nullable=False)   # The one receiving
+    from_entity_type = Column(String, nullable=False) # 'manufacturer' or 'supplier'
+    to_entity_type = Column(String, nullable=False)   # 'supplier' or 'consumer'
+    status = Column(String, default="active")
+    latency_days = Column(Integer, default=1) # The "weight" for Dijkstra
+    created_at = Column(DateTime, default=now)
+
 
 class MedicineCatalog(Base):
     __tablename__ = "medicine_catalog"
@@ -127,6 +142,7 @@ class Shipment(Base):
     status = Column(String, default="pending")
     quantity_dispatched = Column(Integer, nullable=True)
     blockchain_hash = Column(String, nullable=True)
+    override_blockchain_hash = Column(String, nullable=True)
     created_at = Column(DateTime, default=now)
 
 
@@ -221,4 +237,33 @@ class Notification(Base):
     title = Column(String)
     message = Column(Text)
     read = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=now)
+
+
+# --- Multi-Sig Admin Override ---
+class AdminOverrideRequest(Base):
+    """Multi-sig override request. Requires 80% of eligible admins to approve."""
+    __tablename__ = "admin_override_requests"
+    id = Column(String, primary_key=True, default=gen_uuid)
+    shipment_id = Column(String, ForeignKey("shipments.id"), nullable=False)
+    initiated_by = Column(String, ForeignKey("users.id"), nullable=False)
+    justification = Column(Text, nullable=False)
+    status = Column(String, default="pending")  # pending | approved | rejected | executed
+    required_approvals = Column(Integer, nullable=False)
+    current_approvals = Column(Integer, default=0)
+    override_blockchain_hash = Column(String, nullable=True)
+    ai_cross_check = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=now)
+    executed_at = Column(DateTime, nullable=True)
+
+class AdminOverrideVote(Base):
+    """Individual admin vote on an override request."""
+    __tablename__ = "admin_override_votes"
+    id = Column(String, primary_key=True, default=gen_uuid)
+    override_request_id = Column(String, ForeignKey("admin_override_requests.id"), nullable=False)
+    admin_id = Column(String, ForeignKey("users.id"), nullable=False)
+    admin_name = Column(String, nullable=False)
+    admin_sub_role = Column(String, nullable=False)
+    vote = Column(String, nullable=False)  # approve | reject
+    signature = Column(Text, nullable=True)
     created_at = Column(DateTime, default=now)

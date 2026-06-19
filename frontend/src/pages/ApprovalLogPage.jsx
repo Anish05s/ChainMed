@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import Layout from '../components/Layout'
 import { getApprovalLogs } from '../api/approvalLogs'
 
-const FILTERS = ['', 'batch_creation', 'shipment_dispatch', 'incoming_verification', 'receipt_confirmation', 'emergency_restock', 'emergency_stock_request']
+const FILTERS = ['', 'batch_creation', 'shipment_dispatch', 'incoming_verification', 'receipt_confirmation', 'emergency_restock', 'emergency_stock_request', 'admin_override']
 
 const ACTION_COLORS = {
   batch_creation:          { bg: 'rgba(8,145,178,0.08)',  color: '#0891b2' },
@@ -13,6 +13,7 @@ const ACTION_COLORS = {
   emergency_restock:       { bg: 'rgba(217,119,6,0.08)', color: '#d97706' },
   emergency_stock_request: { bg: 'rgba(220,38,38,0.08)',  color: '#dc2626' },
   stock_clearance:         { bg: 'rgba(100,116,139,0.08)', color: '#64748b' },
+  admin_override:          { bg: 'rgba(202,138,4,0.08)', color: '#ca8a04' },
 }
 
 function formatTime(v) {

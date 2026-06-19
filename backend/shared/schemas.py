@@ -43,6 +43,11 @@ class EmergencyNotificationItem(BaseModel):
     created_at: datetime
 
 
+class OverrideSummary(BaseModel):
+    justification: str
+    ai_cross_check: Optional[str] = None
+    approvers: List[str]
+
 class PublicShipmentResponse(BaseModel):
     id: str
     shipment_code: str
@@ -56,6 +61,8 @@ class PublicShipmentResponse(BaseModel):
     to_entity_name: str
     qr_code_url: Optional[str] = None
     blockchain_hash: Optional[str] = None
+    override_blockchain_hash: Optional[str] = None
+    override_details: Optional[OverrideSummary] = None
     handoffs: List[HandoffPublicItem] = []
     approval_logs: List[ApprovalLogItem] = []
 

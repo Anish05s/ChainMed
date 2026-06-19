@@ -11,6 +11,8 @@ import {
   createStockRequest,
   clearStock,
   getStockClearances,
+  getMyRestockRequests,
+  resolveRestockRequest,
 } from '../api/hospital'
 import { getHospitalChain } from '../api/verification'
 import { DEFAULT_ENTITY_ID } from '../utils/entityIds'
@@ -112,6 +114,7 @@ export default function HospitalDashboard() {
   const [chainLoading, setChainLoading] = useState(false)
   const [chainShipId,  setChainShipId]  = useState(null)
   const [clearances, setClearances] = useState([])
+  const [myRequests, setMyRequests] = useState([])
 
   const [invForm, setInvForm] = useState({ medicine_name: '', quantity: 0, reorder_threshold: 500 })
   const [clearanceForm, setClearanceForm] = useState({ medicine_name: '', quantity_cleared: '', reason: 'patient_dispensed', notes: '' })
@@ -121,8 +124,8 @@ export default function HospitalDashboard() {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const [s, i, c] = await Promise.all([getIncomingShipments(), getInventory(), getStockClearances()])
-      setShipments(s); setInventory(i); setClearances(c)
+      const [s, i, c, r] = await Promise.all([getIncomingShipments(), getInventory(), getStockClearances(), getMyRestockRequests()])
+      setShipments(s); setInventory(i); setClearances(c); setMyRequests(r)
     } catch {
       flash('error', 'Failed to load data. Is the API running on :8000?')
     } finally { setLoading(false) }
@@ -207,8 +210,20 @@ export default function HospitalDashboard() {
     try {
       const res = await createStockRequest({ ...stockForm, quantity_requested: Number(stockForm.quantity_requested) })
       flash('success', `Request sent ✓ — Approval: ${res.approval_log_id.slice(0, 8)}…`)
+      load()
     } catch (err) {
       flash('error', err.response?.data?.detail || 'Request failed')
+    } finally { setSubmitting(false) }
+  }
+
+  async function handleResolveRequest(id) {
+    setSubmitting(true)
+    try {
+      await resolveRestockRequest(id)
+      flash('success', 'Emergency request marked as resolved ✓')
+      load()
+    } catch (err) {
+      flash('error', err.response?.data?.detail || 'Failed to resolve request')
     } finally { setSubmitting(false) }
   }
 
@@ -546,15 +561,11 @@ export default function HospitalDashboard() {
 
       {/* ── Emergency Request tab ────────────────────────────── */}
       {!loading && tab === 'request' && (
-        <div className="max-w-lg">
+        <div className="grid lg:grid-cols-2 gap-6">
           <Card>
             <CardHeader title="Emergency Stock Request → Supplier" sub="Creates emergency_stock_request approval log" />
             <div className="p-6">
               <form onSubmit={handleStockRequest} className="space-y-4">
-                <Field label="Supplier Entity ID">
-                  <DInput className="font-mono text-xs" value={stockForm.target_entity_id}
-                    onChange={e => setStockForm(f => ({ ...f, target_entity_id: e.target.value }))} />
-                </Field>
                 <Field label="Medicine Name">
                   <DInput required placeholder="e.g. Oral Rehydration Salts" value={stockForm.medicine_name}
                     onChange={e => setStockForm(f => ({ ...f, medicine_name: e.target.value }))} />
@@ -582,6 +593,43 @@ export default function HospitalDashboard() {
                 </PrimaryBtn>
               </form>
             </div>
+          </Card>
+          
+          <Card>
+            <CardHeader title="My Emergency Requests" sub="Manage requests you have submitted" />
+            {myRequests.length === 0 ? (
+              <div className="p-8 text-center text-sm" style={{ color: 'var(--text-light)' }}>No active or past emergency requests.</div>
+            ) : (
+              <ul className="max-h-[600px] overflow-y-auto">
+                {myRequests.map(r => (
+                  <li key={r.id} className="px-6 py-4" style={{ borderBottom: '1px solid var(--border)' }}>
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <p className="text-sm font-bold" style={{ color: 'var(--text-base)' }}>{r.medicine_name}</p>
+                        <p className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>{r.quantity_requested.toLocaleString()} units requested</p>
+                      </div>
+                      <span className={`px-2 py-0.5 rounded text-xs font-bold ${
+                        r.status === 'resolved' ? 'bg-emerald-100 text-emerald-700' : 
+                        r.urgency === 'critical' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
+                      }`}>
+                        {r.status === 'resolved' ? 'Resolved' : 'Pending'}
+                      </span>
+                    </div>
+                    <p className="text-xs italic mb-3" style={{ color: 'var(--text-light)' }}>"{r.reason}"</p>
+                    {r.status !== 'resolved' && (
+                      <button 
+                        onClick={() => handleResolveRequest(r.id)}
+                        disabled={submitting}
+                        className="text-xs px-3 py-1.5 rounded-lg font-bold transition-all hover:scale-105"
+                        style={{ background: 'rgba(5,150,105,0.08)', color: 'var(--emerald)', border: '1px solid rgba(5,150,105,0.18)' }}
+                      >
+                        ✓ Mark as Resolved
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
           </Card>
         </div>
       )}

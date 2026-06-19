@@ -244,6 +244,23 @@ def confirm_receipt(
     db.refresh(handoff)
     db.refresh(approval_log)
 
+    # Auto-resolve any pending emergency restock requests for this medicine
+    pending_request = (
+        db.query(RestockRequest)
+        .filter(
+            RestockRequest.requester_entity_id == consumer.id,
+            RestockRequest.requester_type == "consumer",
+            RestockRequest.medicine_name == batch.name,
+            RestockRequest.status == "pending"
+        )
+        .first()
+    )
+    if pending_request:
+        pending_request.status = "resolved"
+        # Append a note to the approval log that it resolved an emergency
+        approval_log.notes = str(approval_log.notes) + f" [Auto-resolved Emergency Request for {batch.name}]"
+        db.commit()
+
     # Trigger three-party verification AI + blockchain (non-blocking)
     # For hospital_receipt we need to find the inbound shipment from supplier
     verification_result = trigger_verification_and_blockchain(
@@ -451,6 +468,8 @@ def _parse_clearance_log(notes: str) -> Optional[dict]:
     }
 
 
+from shared.dijkstra import find_best_restock_route
+
 @router.post(
     "/stock-requests",
     response_model=StockRequestResponse,
@@ -463,12 +482,21 @@ def create_stock_request(
 ):
     consumer = _get_consumer(db, current_user.entity_id)
 
-    supplier = db.query(Supplier).filter(Supplier.id == data.target_entity_id).first()
-    if not supplier:
+    # Use Dijkstra to find the best supplier
+    route = find_best_restock_route(db, consumer.id, "consumer", data.medicine_name, data.quantity_requested)
+    
+    if not route or len(route) < 2:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Target supplier not found",
+            detail="No registered supplier found with sufficient stock in the network."
         )
+        
+    # The direct target is the next hop in the route (route[1])
+    target_supplier_id = route[1]
+    supplier = db.query(Supplier).filter(Supplier.id == target_supplier_id).first()
+    
+    if not supplier:
+        raise HTTPException(status_code=404, detail="Resolved supplier not found")
 
     request = RestockRequest(
         requester_entity_id=consumer.id,
@@ -483,6 +511,11 @@ def create_stock_request(
     db.add(request)
     db.flush()
 
+    # If the route is longer than 2, it means the supplier will likely need to restock from manufacturer
+    route_note = ""
+    if len(route) > 2:
+        route_note = " (System notes: Supplier may need to source from Manufacturer)"
+
     approval_log = _write_approval_log(
         db,
         current_user,
@@ -490,8 +523,8 @@ def create_stock_request(
         entity_id=request.id,
         entity_type="restock_request",
         notes=(
-            f"Emergency stock request to {supplier.name}: "
-            f"{data.medicine_name} × {data.quantity_requested} · {data.reason}"
+            f"Emergency stock request routed via Dijkstra to {supplier.name}: "
+            f"{data.medicine_name} × {data.quantity_requested} · {data.reason}{route_note}"
         ),
     )
     db.commit()
@@ -509,3 +542,57 @@ def create_stock_request(
         status=request.status,
         approval_log_id=approval_log.id,
     )
+
+
+@router.get("/restock-requests/mine", response_model=List[StockRequestResponse])
+def get_my_restock_requests(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_consumer),
+):
+    consumer = _get_consumer(db, current_user.entity_id)
+    requests = (
+        db.query(RestockRequest)
+        .filter(
+            RestockRequest.requester_entity_id == consumer.id,
+            RestockRequest.requester_type == "consumer",
+        )
+        .order_by(RestockRequest.created_at.desc())
+        .all()
+    )
+    return [
+        StockRequestResponse(
+            id=r.id,
+            requester_entity_id=r.requester_entity_id,
+            target_entity_id=r.target_entity_id,
+            medicine_name=r.medicine_name,
+            quantity_requested=r.quantity_requested,
+            reason=r.reason,
+            urgency=r.urgency,
+            status=r.status,
+            approval_log_id=None,
+        )
+        for r in requests
+    ]
+
+
+@router.post("/restock-requests/{request_id}/resolve")
+def resolve_restock_request(
+    request_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_consumer),
+):
+    consumer = _get_consumer(db, current_user.entity_id)
+    
+    req = db.query(RestockRequest).filter(RestockRequest.id == request_id).first()
+    if not req:
+        raise HTTPException(status_code=404, detail="Request not found")
+        
+    if req.requester_entity_id != consumer.id or req.requester_type != "consumer":
+        raise HTTPException(status_code=403, detail="Not authorized to resolve this request")
+        
+    if req.status == "resolved":
+        return {"status": "already_resolved"}
+        
+    req.status = "resolved"
+    db.commit()
+    return {"status": "resolved"}
