@@ -28,6 +28,7 @@ from consumer.schemas import (
     StockClearanceRequest,
     StockClearanceResponse,
     StockClearanceHistoryItem,
+    ReturnRequest,
     CLEARANCE_REASONS,
 )
 from auth.signing import sign_handoff
@@ -292,6 +293,80 @@ def confirm_receipt(
         ai_risk_score=verification_result.get("risk_score"),
         ai_explanation=verification_result.get("explanation"),
     )
+
+import secrets
+
+@router.post("/shipments/{shipment_id}/return", status_code=status.HTTP_201_CREATED)
+def return_shipment(
+    shipment_id: str,
+    data: ReturnRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_consumer),
+):
+    consumer = _get_consumer(db, current_user.entity_id)
+    
+    original_shipment = (
+        db.query(Shipment)
+        .filter(Shipment.id == shipment_id, Shipment.to_entity_id == consumer.id)
+        .first()
+    )
+    if not original_shipment:
+        raise HTTPException(status_code=404, detail="Shipment not found")
+        
+    if original_shipment.status != "delivered":
+        raise HTTPException(status_code=400, detail="Only delivered shipments can be returned")
+        
+    batch = db.query(MedicineBatch).filter(MedicineBatch.id == original_shipment.batch_id).first()
+    
+    stock = (
+        db.query(StockLevel)
+        .filter(
+            StockLevel.entity_id == consumer.id,
+            StockLevel.entity_type == "consumer",
+            StockLevel.medicine_name == batch.name,
+        )
+        .first()
+    )
+    
+    if not stock or stock.quantity < data.quantity_returned:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Insufficient stock to return. Have {stock.quantity if stock else 0}, trying to return {data.quantity_returned}"
+        )
+        
+    stock.quantity -= data.quantity_returned
+    
+    shipment_code = f"RET-{batch.batch_number}-{secrets.token_hex(3).upper()}"
+    while db.query(Shipment).filter(Shipment.shipment_code == shipment_code).first():
+        shipment_code = f"RET-{batch.batch_number}-{secrets.token_hex(3).upper()}"
+        
+    return_shipment = Shipment(
+        batch_id=batch.id,
+        from_entity_id=consumer.id,
+        to_entity_id=original_shipment.from_entity_id,
+        shipment_code=shipment_code,
+        quantity_dispatched=data.quantity_returned,
+        status="return_pending",
+    )
+    db.add(return_shipment)
+    db.flush()
+    
+    approval_log = _write_approval_log(
+        db,
+        current_user,
+        action_type="shipment_return",
+        entity_id=return_shipment.id,
+        entity_type="shipment",
+        notes=f"Returned {data.quantity_returned} units of {batch.name} to supplier. Reason: {data.reason}",
+    )
+    db.commit()
+    
+    return {
+        "status": "return_pending",
+        "return_shipment_id": return_shipment.id,
+        "shipment_code": return_shipment.shipment_code,
+        "quantity_returned": return_shipment.quantity_dispatched,
+    }
 
 
 @router.get("/inventory", response_model=List[InventoryItem])

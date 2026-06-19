@@ -16,6 +16,7 @@ from models import (
     ApprovalLog,
     StockLevel,
     RestockRequest,
+    TradePartnership,
 )
 from auth.dependencies import require_supplier
 from verification_ai.wiring import trigger_verification_and_blockchain
@@ -30,6 +31,7 @@ from supplier.schemas import (
     OutboundShipmentResponse,
     RestockRequestCreate,
     RestockRequestResponse,
+    ReturnRequest,
 )
 from supplier.batch_inventory import (
     received_units_for_batch,
@@ -307,8 +309,133 @@ def verify_incoming_shipment(
         ai_explanation=verification_result.get("explanation"),
     )
 
+import secrets
 
-@router.get("/batches/dispatchable", response_model=List[DispatchableBatchItem])
+@router.post("/shipments/{shipment_id}/return_receive", status_code=status.HTTP_200_OK)
+def receive_return(
+    shipment_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_supplier),
+):
+    supplier = _get_supplier(db, current_user.entity_id)
+    
+    shipment = db.query(Shipment).filter(Shipment.id == shipment_id, Shipment.to_entity_id == supplier.id).first()
+    if not shipment:
+        raise HTTPException(status_code=404, detail="Return shipment not found")
+        
+    if shipment.status != "return_pending":
+        raise HTTPException(status_code=400, detail="Shipment is not pending return")
+        
+    batch = db.query(MedicineBatch).filter(MedicineBatch.id == shipment.batch_id).first()
+    
+    # Add stock back to supplier
+    stock = (
+        db.query(StockLevel)
+        .filter(
+            StockLevel.entity_id == supplier.id,
+            StockLevel.entity_type == "supplier",
+            StockLevel.medicine_name == batch.name,
+        )
+        .first()
+    )
+    if stock:
+        stock.quantity += shipment.quantity_dispatched
+    else:
+        stock = StockLevel(
+            entity_id=supplier.id,
+            entity_type="supplier",
+            medicine_name=batch.name,
+            quantity=shipment.quantity_dispatched,
+            reorder_threshold=5000,
+        )
+        db.add(stock)
+        
+    shipment.status = "returned"
+    
+    _write_approval_log(
+        db,
+        current_user,
+        action_type="shipment_return_received",
+        entity_id=shipment.id,
+        entity_type="shipment",
+        notes=f"Received returned stock ({shipment.quantity_dispatched} units) of {batch.name}",
+    )
+    db.commit()
+    return {"message": "Return received successfully", "new_stock_quantity": stock.quantity}
+
+@router.post("/shipments/{shipment_id}/return", status_code=status.HTTP_201_CREATED)
+def return_shipment(
+    shipment_id: str,
+    data: ReturnRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_supplier),
+):
+    supplier = _get_supplier(db, current_user.entity_id)
+    
+    original_shipment = (
+        db.query(Shipment)
+        .filter(Shipment.id == shipment_id, Shipment.to_entity_id == supplier.id)
+        .first()
+    )
+    if not original_shipment:
+        raise HTTPException(status_code=404, detail="Shipment not found")
+        
+    if original_shipment.status != "delivered":
+        raise HTTPException(status_code=400, detail="Only delivered shipments can be returned")
+        
+    batch = db.query(MedicineBatch).filter(MedicineBatch.id == original_shipment.batch_id).first()
+    
+    stock = (
+        db.query(StockLevel)
+        .filter(
+            StockLevel.entity_id == supplier.id,
+            StockLevel.entity_type == "supplier",
+            StockLevel.medicine_name == batch.name,
+        )
+        .first()
+    )
+    
+    if not stock or stock.quantity < data.quantity_returned:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Insufficient stock to return. Have {stock.quantity if stock else 0}, trying to return {data.quantity_returned}"
+        )
+        
+    stock.quantity -= data.quantity_returned
+    
+    shipment_code = f"RET-{batch.batch_number}-{secrets.token_hex(3).upper()}"
+    while db.query(Shipment).filter(Shipment.shipment_code == shipment_code).first():
+        shipment_code = f"RET-{batch.batch_number}-{secrets.token_hex(3).upper()}"
+        
+    return_shipment = Shipment(
+        batch_id=batch.id,
+        from_entity_id=supplier.id,
+        to_entity_id=original_shipment.from_entity_id,
+        shipment_code=shipment_code,
+        quantity_dispatched=data.quantity_returned,
+        status="return_pending",
+    )
+    db.add(return_shipment)
+    db.flush()
+    
+    _write_approval_log(
+        db,
+        current_user,
+        action_type="shipment_return",
+        entity_id=return_shipment.id,
+        entity_type="shipment",
+        notes=f"Returned {data.quantity_returned} units of {batch.name} to manufacturer. Reason: {data.reason}",
+    )
+    db.commit()
+    
+    return {
+        "status": "return_pending",
+        "return_shipment_id": return_shipment.id,
+        "shipment_code": return_shipment.shipment_code,
+        "quantity_returned": return_shipment.quantity_dispatched,
+    }
+
+@router.get("/inventory/dispatchable", response_model=List[DispatchableBatchItem])
 def list_dispatchable_batches(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_supplier),
@@ -388,6 +515,17 @@ def dispatch_to_hospital(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Hospital/NGO not found",
+        )
+
+    partnership = db.query(TradePartnership).filter(
+        TradePartnership.from_entity_id == supplier.id,
+        TradePartnership.to_entity_id == hospital.id,
+        TradePartnership.status == "active"
+    ).first()
+    if not partnership:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Dispatch denied: No active trade partnership exists with this hospital/NGO."
         )
 
     stock = (

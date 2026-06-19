@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from database import get_db
 from config import settings
-from models import Manufacturer, MedicineBatch, ApprovalLog, Shipment, Supplier
+from models import Manufacturer, MedicineBatch, ApprovalLog, Shipment, Supplier, TradePartnership
 from auth.dependencies import require_manufacturer
 from models import User
 from manufacturer.schemas import (
@@ -198,6 +198,17 @@ def create_shipment(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Supplier not found",
+        )
+
+    partnership = db.query(TradePartnership).filter(
+        TradePartnership.from_entity_id == manufacturer.id,
+        TradePartnership.to_entity_id == supplier.id,
+        TradePartnership.status == "active"
+    ).first()
+    if not partnership:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Dispatch denied: No active trade partnership exists with this supplier."
         )
 
     remaining = remaining_units_for_batch(db, batch, manufacturer.id)

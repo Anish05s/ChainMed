@@ -38,6 +38,21 @@ class ShipmentVerifyResponse(BaseModel):
     ai_explanation: Optional[str] = None
 
 
+class StockClearanceHistoryItem(BaseModel):
+    id: str
+    medicine_name: str
+    quantity_cleared: int
+    reason: str
+    quantity_remaining_after: int
+    notes: Optional[str] = None
+    created_at: datetime
+
+
+class ReturnRequest(BaseModel):
+    quantity_returned: int = Field(..., gt=0)
+    reason: str = Field(...)
+
+
 class InventoryItem(BaseModel):
     id: str
     medicine_name: str

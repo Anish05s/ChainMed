@@ -112,3 +112,7 @@ class StockClearanceHistoryItem(BaseModel):
     quantity_remaining_after: int
     notes: Optional[str] = None
     created_at: datetime
+
+class ReturnRequest(BaseModel):
+    quantity_returned: int = Field(..., gt=0)
+    reason: str = Field(...)
