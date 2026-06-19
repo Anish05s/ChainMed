@@ -140,6 +140,7 @@ export default function PublicShipmentPage() {
                     <div className="px-3 py-2 rounded-xl text-xs font-semibold" style={{ background: 'rgba(217,119,6,0.06)', border: '1px solid rgba(217,119,6,0.15)', color: 'var(--amber)' }}>
                       ⏳ Awaiting on-chain record (blockchain tx pending)
                     </div>
+                  )}
                   {data.override_details && (
                     <div className="mt-4 p-4 rounded-xl border" style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.2)' }}>
                       <p className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: '#d97706' }}>⚠️ Multi-Sig Admin Override</p>
