@@ -157,6 +157,8 @@ class HandoffRecord(Base):
     quantity_salt = Column(String)
     expiry_reported = Column(DateTime)
     temp_reported = Column(Float)
+    signature = Column(Text, nullable=True)
+    public_key_pem = Column(Text, nullable=True)
     submitted_at = Column(DateTime, default=now)
 
 class AIFlag(Base):

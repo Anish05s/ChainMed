@@ -43,6 +43,7 @@ class PartyReport:
     temp: Optional[float] = None
     batch_name: str = "Unknown"
     batch_number: str = "Unknown"
+    signature_valid: bool = True
 
 
 @dataclass
@@ -184,6 +185,17 @@ def run_verification(
                 "difference_c": round(diff, 1),
             })
             risk += 15
+
+    # Unverified Signatures (f5)
+    for party, report in [("manufacturer", manufacturer), ("supplier", supplier), ("hospital", hospital)]:
+        if report and not report.signature_valid:
+            rules.append(f"UNVERIFIED_SIGNATURE_{party.upper()}")
+            mismatches.append({
+                "field": "signature",
+                "party": party,
+                "status": "invalid_or_missing",
+            })
+            risk += 20
 
     risk = min(100.0, risk)
     status = "FLAGGED" if risk >= FLAG_RISK_THRESHOLD else "VERIFIED"

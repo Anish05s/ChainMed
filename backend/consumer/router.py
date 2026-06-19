@@ -194,6 +194,15 @@ def confirm_receipt(
     salt = generate_salt()
     commitment = create_commitment(data.quantity_reported, salt)
 
+    payload_to_sign = {
+        "shipment_id": shipment.id,
+        "quantity_reported": data.quantity_reported,
+        "quantity_commitment": commitment,
+        "expiry_reported": data.expiry_reported.isoformat(),
+        "temp_reported": data.temp_reported,
+    }
+    signature = sign_handoff(current_user.private_key_pem, payload_to_sign) if current_user.private_key_pem else None
+
     handoff = HandoffRecord(
         shipment_id=shipment.id,
         stage="hospital_receipt",
@@ -203,6 +212,8 @@ def confirm_receipt(
         quantity_salt=salt,
         expiry_reported=data.expiry_reported,
         temp_reported=data.temp_reported,
+        signature=signature,
+        public_key_pem=current_user.public_key_pem,
     )
     db.add(handoff)
     db.flush()

@@ -55,11 +55,27 @@ def _load_party_reports(
         role = _STAGE_ROLE.get(h.stage)
         if role is None:
             continue
+        signature_valid = True
+        if h.signature and h.public_key_pem:
+            from auth.signing import verify_handoff_signature
+            payload = {
+                "shipment_id": shipment_id,
+                "quantity_reported": h.quantity_reported,
+                "quantity_commitment": h.quantity_commitment,
+                "expiry_reported": h.expiry_reported.isoformat() if isinstance(h.expiry_reported, datetime) else None,
+                "temp_reported": h.temp_reported,
+            }
+            signature_valid = verify_handoff_signature(h.public_key_pem, payload, h.signature)
+        elif h.signature is None and h.public_key_pem is None:
+            # For backward compatibility with old records, or missing keys
+            signature_valid = False
+
         reports[role] = PartyReport(
             party=role,
             quantity=h.quantity_reported,
             expiry=h.expiry_reported if isinstance(h.expiry_reported, datetime) else None,
             temp=h.temp_reported,
+            signature_valid=signature_valid,
         )
 
     # If supplier handoff is missing (because it's attached to the previous shipment)
@@ -84,11 +100,26 @@ def _load_party_reports(
                     .first()
                 )
                 if sup_handoff:
+                    signature_valid = True
+                    if sup_handoff.signature and sup_handoff.public_key_pem:
+                        from auth.signing import verify_handoff_signature
+                        payload = {
+                            "shipment_id": sup_incoming.id,
+                            "quantity_reported": sup_handoff.quantity_reported,
+                            "quantity_commitment": sup_handoff.quantity_commitment,
+                            "expiry_reported": sup_handoff.expiry_reported.isoformat() if isinstance(sup_handoff.expiry_reported, datetime) else None,
+                            "temp_reported": sup_handoff.temp_reported,
+                        }
+                        signature_valid = verify_handoff_signature(sup_handoff.public_key_pem, payload, sup_handoff.signature)
+                    elif sup_handoff.signature is None and sup_handoff.public_key_pem is None:
+                        signature_valid = False
+
                     reports["supplier"] = PartyReport(
                         party="supplier",
                         quantity=sup_handoff.quantity_reported,
                         expiry=sup_handoff.expiry_reported if isinstance(sup_handoff.expiry_reported, datetime) else None,
                         temp=sup_handoff.temp_reported,
+                        signature_valid=signature_valid,
                     )
 
     # Manufacturer report: if no explicit manufacturer handoff, use batch data
