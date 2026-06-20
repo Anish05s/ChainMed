@@ -173,6 +173,7 @@ def create_batch(
 
 
 @router.post("/shipments", response_model=ShipmentResponse, status_code=status.HTTP_201_CREATED)
+def create_shipment(
     data: ShipmentCreateRequest,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
