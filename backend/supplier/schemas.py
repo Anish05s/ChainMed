@@ -118,7 +118,7 @@ class RestockRequestResponse(BaseModel):
     reason: str
     urgency: str
     status: str
-    approval_log_id: str
+    approval_log_id: Optional[str] = None
 
     class Config:
         from_attributes = True

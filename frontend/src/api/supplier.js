@@ -9,9 +9,8 @@ export async function verifyShipment(shipmentId, payload) {
   const { data } = await api.post(`/supplier/shipments/${shipmentId}/verify`, payload)
   return data
 }
-
 export async function getDispatchableBatches() {
-  const { data } = await api.get('/supplier/batches/dispatchable')
+  const { data } = await api.get('/supplier/inventory/dispatchable')
   return data
 }
 
