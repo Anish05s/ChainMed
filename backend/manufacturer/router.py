@@ -1,9 +1,10 @@
 import secrets
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.orm import Session
-from database import get_db
+from database import get_db, SessionLocal
 from config import settings
+from blockchain_service.service import bg_record_handoff_and_store
 from models import Manufacturer, MedicineBatch, ApprovalLog, Shipment, Supplier, TradePartnership
 from auth.dependencies import require_manufacturer
 from models import User
@@ -172,8 +173,8 @@ def create_batch(
 
 
 @router.post("/shipments", response_model=ShipmentResponse, status_code=status.HTTP_201_CREATED)
-def create_shipment(
     data: ShipmentCreateRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_manufacturer),
 ):
@@ -266,6 +267,18 @@ def create_shipment(
     db.commit()
     db.refresh(shipment)
     db.refresh(approval_log)
+
+    background_tasks.add_task(
+        bg_record_handoff_and_store,
+        shipment.id,
+        "dispatched",
+        0.0,
+        SessionLocal,
+        Shipment,
+        shipment.id,
+        "blockchain_hash",
+        approval_log.id,
+    )
 
     return ShipmentResponse(
         id=shipment.id,

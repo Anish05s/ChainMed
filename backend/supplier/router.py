@@ -3,8 +3,9 @@ from fastapi import BackgroundTasks
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from database import get_db
+from database import get_db, SessionLocal
 from config import settings
+from blockchain_service.service import bg_record_handoff_and_store
 from models import (
     User,
     Supplier,
@@ -295,6 +296,7 @@ def verify_incoming_shipment(
         shipment_id=shipment.id,
         db=db,
         background_tasks=background_tasks,
+        approval_log_id=approval_log.id,
     )
     db.commit()  # persist AIFlag
 
@@ -483,6 +485,7 @@ def list_dispatchable_batches(
 )
 def dispatch_to_hospital(
     data: OutboundShipmentCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_supplier),
 ):
@@ -592,6 +595,18 @@ def dispatch_to_hospital(
     db.commit()
     db.refresh(shipment)
     db.refresh(approval_log)
+
+    background_tasks.add_task(
+        bg_record_handoff_and_store,
+        shipment.id,
+        "dispatched",
+        0.0,
+        SessionLocal,
+        Shipment,
+        shipment.id,
+        "blockchain_hash",
+        approval_log.id,
+    )
 
     return OutboundShipmentResponse(
         id=shipment.id,

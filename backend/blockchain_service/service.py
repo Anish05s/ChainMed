@@ -399,23 +399,31 @@ def bg_record_handoff_and_store(
     model_class,               # Shipment or MedicineBatch
     record_id: str,
     hash_column: str = "blockchain_hash",
+    approval_log_id: str = None,
 ) -> None:
     """
     Background task:
       1. Record handoff on-chain
-      2. Write tx hash back to the DB record
+      2. Write tx hash back to the DB record and the associated ApprovalLog
     Called via: BackgroundTasks.add_task(bg_record_handoff_and_store, ...)
     """
     svc = get_blockchain_service()
     tx_hash = svc.record_handoff(shipment_id, status, risk_score)
 
     if tx_hash:
+        from models import ApprovalLog
         db = db_session_factory()
         try:
             obj = db.query(model_class).filter(model_class.id == record_id).first()
             if obj:
                 setattr(obj, hash_column, tx_hash)
-                db.commit()
+            
+            if approval_log_id:
+                log_obj = db.query(ApprovalLog).filter(ApprovalLog.id == approval_log_id).first()
+                if log_obj:
+                    log_obj.blockchain_hash = tx_hash
+                    
+            db.commit()
         except Exception as exc:
             logger.error("Failed to write blockchain_hash to DB: %s", exc)
             db.rollback()

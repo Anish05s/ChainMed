@@ -3,7 +3,8 @@ from fastapi import BackgroundTasks
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from database import get_db
+from database import get_db, SessionLocal
+from blockchain_service.service import bg_record_handoff_and_store
 from models import (
     User,
     Consumer,
@@ -280,6 +281,7 @@ def confirm_receipt(
         db=db,
         background_tasks=background_tasks,
         hospital_shipment_id=shipment.id,
+        approval_log_id=approval_log.id,
     )
     db.commit()  # persist AIFlag
 

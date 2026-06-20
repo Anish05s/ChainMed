@@ -160,6 +160,7 @@ def trigger_verification_and_blockchain(
     db: Session,
     background_tasks: BackgroundTasks,
     hospital_shipment_id: Optional[str] = None,
+    approval_log_id: Optional[str] = None,
 ) -> dict:
     """
     Called from supplier/router.py and consumer/router.py after a handoff
@@ -259,6 +260,7 @@ def trigger_verification_and_blockchain(
             risk_score=result.risk_score,
             flag_reason=result.explanation[:200],
             db_session_factory=SessionLocal,
+            approval_log_id=approval_log_id,
         )
         logger.info("Queued sequential record+flag blockchain tasks for shipment %s", shipment_id)
     else:
@@ -271,6 +273,7 @@ def trigger_verification_and_blockchain(
             Shipment,
             shipment_id,
             "blockchain_hash",
+            approval_log_id,
         )
         logger.info("Queued blockchain handoff record for shipment %s", shipment_id)
 
@@ -329,6 +332,7 @@ def _record_then_flag(
     risk_score: float,
     flag_reason: str,
     db_session_factory,
+    approval_log_id: str = None,
 ) -> None:
     """
     Sequential BackgroundTask for FLAGGED shipments.
@@ -349,14 +353,22 @@ def _record_then_flag(
     tx_hash = svc.record_handoff(shipment_id, status, risk_score)
     logger.info("[blockchain] recordHandoff tx for %s: %s", shipment_id, tx_hash)
 
-    # Step 2: Write tx hash to DB
+    # Step 2:
     if tx_hash:
+        from models import Shipment, ApprovalLog
         db = db_session_factory()
         try:
-            obj = db.query(Shipment).filter(Shipment.id == shipment_id).first()
-            if obj:
-                obj.blockchain_hash = tx_hash
-                db.commit()
+            sh = db.query(Shipment).filter(Shipment.id == shipment_id).first()
+            if sh:
+                sh.blockchain_hash = tx_hash
+                sh.status = status
+            
+            if approval_log_id:
+                log_obj = db.query(ApprovalLog).filter(ApprovalLog.id == approval_log_id).first()
+                if log_obj:
+                    log_obj.blockchain_hash = tx_hash
+                    
+            db.commit()
         except Exception as exc:
             logger.error("[blockchain] Failed to write blockchain_hash: %s", exc)
             db.rollback()

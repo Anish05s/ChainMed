@@ -12,6 +12,7 @@ class ApprovalLogItem(BaseModel):
     entity_id: Optional[str] = None
     entity_type: Optional[str] = None
     notes: Optional[str] = None
+    blockchain_hash: Optional[str] = None
     created_at: Optional[datetime] = None
 
     class Config:
