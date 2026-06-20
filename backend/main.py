@@ -19,6 +19,7 @@ from consumer.router import router as consumer_router
 from verification_ai.router import router as verification_ai_router
 from approval_logs.router import router as approval_logs_router
 from shared.router import router as shared_router
+from shared.partnerships import router as partnerships_router
 from notification_service.router import router as notifications_router
 from crisis_ai.router import router as crisis_router
 
@@ -128,6 +129,7 @@ app.include_router(consumer_router)
 app.include_router(verification_ai_router)
 app.include_router(approval_logs_router)
 app.include_router(shared_router)
+app.include_router(partnerships_router)
 app.include_router(notifications_router)
 app.include_router(crisis_router)
 app.include_router(admin_router)

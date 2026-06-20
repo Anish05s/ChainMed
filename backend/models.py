@@ -101,7 +101,8 @@ class TradePartnership(Base):
     to_entity_id = Column(String, nullable=False)   # The one receiving
     from_entity_type = Column(String, nullable=False) # 'manufacturer' or 'supplier'
     to_entity_type = Column(String, nullable=False)   # 'supplier' or 'consumer'
-    status = Column(String, default="active")
+    requested_by = Column(String, nullable=True)      # the entity_id that initiated the request
+    status = Column(String, default="pending")        # pending, active, rejected
     latency_days = Column(Integer, default=1) # The "weight" for Dijkstra
     created_at = Column(DateTime, default=now)
 

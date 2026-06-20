@@ -12,6 +12,7 @@ import ApprovalLogPage from './pages/ApprovalLogPage'
 import PublicShipmentPage from './pages/PublicShipmentPage'
 import CrisisDashboard from './pages/CrisisDashboard'
 import AdminDashboard from './pages/AdminDashboard'
+import TradePartnersPage from './pages/TradePartnersPage'
 
 function HomeRedirect() {
   const { user } = useAuth()
@@ -57,6 +58,15 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <CrisisDashboard />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/trade-partners"
+            element={
+              <ProtectedRoute>
+                <TradePartnersPage />
               </ProtectedRoute>
             }
           />

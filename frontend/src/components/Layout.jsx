@@ -234,6 +234,7 @@ export default function Layout({ title, children, actions }) {
             {[
               { to: '/approval-log', icon: '📋', label: 'Audit Log' },
               { to: '/crisis',       icon: '🌍', label: 'Crisis Map' },
+              { to: '/trade-partners', icon: '🤝', label: 'Trade Partners' },
             ].map(({ to, icon, label }) => {
               const active = location.pathname === to
               return (
