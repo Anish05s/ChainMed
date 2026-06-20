@@ -19,12 +19,12 @@ api.interceptors.response.use(
       // Don't redirect if already on the login or signup page —
       // a failed login returns 401 and we want to show an error,
       // not cause a full page reload that clears the form.
-      const authRoutes = ['/', '/signup']
+      const authRoutes = ['/', '/login', '/signup']
       const isAuthPage = authRoutes.includes(window.location.pathname)
       if (!isAuthPage) {
         localStorage.removeItem('token')
-        localStorage.removeItem('userRole')
-        window.location.href = '/'
+        localStorage.removeItem('user')
+        window.location.href = '/login'
       }
     }
     return Promise.reject(error)

@@ -106,7 +106,7 @@ class OutboundShipmentResponse(BaseModel):
     qr_code_url: str
     verification_url: str
     status: str
-    approval_log_id: str
+    approval_log_id: Optional[str] = None
 
 
 class RestockRequestResponse(BaseModel):

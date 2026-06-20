@@ -25,7 +25,7 @@ class BatchResponse(BaseModel):
     expiry_date: datetime
     manufacturing_date: datetime
     storage_temp_declared: Optional[float] = None
-    approval_log_id: str
+    approval_log_id: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -64,7 +64,7 @@ class ShipmentResponse(BaseModel):
     qr_code_url: str
     verification_url: str
     status: str
-    approval_log_id: str
+    approval_log_id: Optional[str] = None
 
     class Config:
         from_attributes = True
