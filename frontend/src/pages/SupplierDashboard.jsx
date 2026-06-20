@@ -114,7 +114,7 @@ export default function SupplierDashboard() {
       const [s, i, d, r] = await Promise.all([getIncomingShipments(), getInventory(), getDispatchableBatches(), getMyRestockRequests()])
       setShipments(s); setInventory(i); setDispatchableBatches(d); setMyRequests(r)
     } catch {
-      flash('error', 'Failed to load data. Is the API running on :8000?')
+      flash('error', 'Unable to connect to the server. Please refresh the page or try again later.')
     } finally { setLoading(false) }
   }, [])
 

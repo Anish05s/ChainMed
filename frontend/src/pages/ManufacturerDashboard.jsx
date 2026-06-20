@@ -52,7 +52,7 @@ export default function ManufacturerDashboard() {
   useEffect(() => {
     getBatches()
       .then(setBatches)
-      .catch(() => setError('Could not load batches. Is the API running on :8000?'))
+      .catch(() => setError('Unable to connect to the server. Please refresh the page or try again later.'))
       .finally(() => setLoading(false))
   }, [])
 

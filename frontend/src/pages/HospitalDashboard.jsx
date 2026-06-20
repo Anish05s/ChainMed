@@ -127,7 +127,7 @@ export default function HospitalDashboard() {
       const [s, i, c, r] = await Promise.all([getIncomingShipments(), getInventory(), getStockClearances(), getMyRestockRequests()])
       setShipments(s); setInventory(i); setClearances(c); setMyRequests(r)
     } catch {
-      flash('error', 'Failed to load data. Is the API running on :8000?')
+      flash('error', 'Unable to connect to the server. Please refresh the page or try again later.')
     } finally { setLoading(false) }
   }, [])
 
