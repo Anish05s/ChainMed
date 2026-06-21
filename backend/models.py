@@ -231,6 +231,11 @@ class ApprovalLog(Base):
     signer_address = Column(String)
     created_at = Column(DateTime, default=now)
     blockchain_hash = Column(String)
+    # ── Hash Chain (P1.5) ────────────────────────────────────────────────────
+    # Each row hashes the previous row's log_hash into itself,
+    # forming a tamper-evident linked list. Recomputable by any auditor.
+    previous_hash = Column(String, nullable=True)  # log_hash of the previous ApprovalLog row
+    log_hash = Column(String, nullable=True)        # SHA-256(this row's fields + previous_hash)
 
 class Notification(Base):
     __tablename__ = "notifications"

@@ -33,6 +33,7 @@ from consumer.schemas import (
     CLEARANCE_REASONS,
 )
 from auth.signing import sign_handoff
+from audit_chain import write_approval_log
 from auth.zkp import generate_salt, create_commitment
 
 router = APIRouter(prefix="/consumer", tags=["Consumer"])
@@ -48,32 +49,7 @@ def _get_consumer(db: Session, entity_id: str) -> Consumer:
     return consumer
 
 
-def _write_approval_log(
-    db: Session,
-    user: User,
-    action_type: str,
-    entity_id: str,
-    entity_type: str,
-    notes: str,
-    signed_payload: dict = None,
-) -> ApprovalLog:
-    signature = None
-    if signed_payload and user.private_key_pem:
-        signature = sign_handoff(user.private_key_pem, signed_payload)
 
-    log = ApprovalLog(
-        actor_role=user.sub_role,
-        actor_name=user.full_name or user.email,
-        actor_id=user.id,
-        action_type=action_type,
-        entity_id=entity_id,
-        entity_type=entity_type,
-        notes=notes,
-        signature=signature,
-        signer_address=user.public_key_pem,
-    )
-    db.add(log)
-    return log
 
 
 def _upsert_stock(
@@ -244,7 +220,7 @@ def confirm_receipt(
         "consumer_id": consumer.id,
     }
 
-    approval_log = _write_approval_log(
+    approval_log = write_approval_log(
         db,
         current_user,
         action_type="receipt_confirmation",
@@ -353,7 +329,7 @@ def return_shipment(
     db.add(return_shipment)
     db.flush()
     
-    approval_log = _write_approval_log(
+    approval_log = write_approval_log(
         db,
         current_user,
         action_type="shipment_return",
@@ -475,7 +451,7 @@ def clear_stock(
     if data.notes:
         log_notes += f" · {data.notes}"
 
-    approval_log = _write_approval_log(
+    approval_log = write_approval_log(
         db,
         current_user,
         action_type="stock_clearance",
@@ -604,7 +580,7 @@ def create_stock_request(
     if len(route) > 2:
         route_note = " (System notes: Supplier may need to source from Manufacturer)"
 
-    approval_log = _write_approval_log(
+    approval_log = write_approval_log(
         db,
         current_user,
         action_type="emergency_stock_request",

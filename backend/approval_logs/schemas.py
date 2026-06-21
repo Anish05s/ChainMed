@@ -14,6 +14,9 @@ class ApprovalLogItem(BaseModel):
     notes: Optional[str] = None
     blockchain_hash: Optional[str] = None
     created_at: Optional[datetime] = None
+    # P1.5 — Hash chain fields
+    log_hash: Optional[str] = None
+    previous_hash: Optional[str] = None
 
     class Config:
         from_attributes = True
