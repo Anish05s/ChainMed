@@ -10,6 +10,9 @@ class Settings(BaseSettings):
     # ── App ───────────────────────────────────────────────────────────────────
     # IMPORTANT: override SECRET_KEY in production .env — never use the default
     SECRET_KEY: str = "chainmed-secret-key-change-in-production"
+    # IMPORTANT: Generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+    # This encrypts all ECDSA private keys at rest. MUST be set in production.
+    KEY_ENCRYPTION_SECRET: str = ""
     ENVIRONMENT: str = "development"
     PUBLIC_APP_URL: str = "http://localhost:5173"
     API_BASE_URL: str = "http://localhost:8000"

@@ -22,9 +22,13 @@ def generate_entity_keypair() -> dict:
 
 
 def sign_handoff(private_key_pem: str, handoff_data: dict) -> str:
-    """Entity signs their handoff submission. Returns base64 signature."""
+    """Entity signs their handoff submission. Returns base64 signature.
+    Accepts both plaintext PEM and encrypted 'enc:...' values transparently.
+    """
+    from auth.key_encryption import decrypt_private_key  # deferred to avoid circular import
+    raw_pem = decrypt_private_key(private_key_pem)
     private_key = serialization.load_pem_private_key(
-        private_key_pem.encode(), password=None, backend=default_backend()
+        raw_pem.encode(), password=None, backend=default_backend()
     )
     payload = json.dumps(handoff_data, sort_keys=True).encode()
     signature = private_key.sign(payload, ec.ECDSA(hashes.SHA256()))

@@ -35,6 +35,7 @@ TABLES = [
 ]
 
 from auth.signing import generate_entity_keypair
+from auth.key_encryption import encrypt_private_key
 
 mfg_keys = generate_entity_keypair()
 sup_keys = generate_entity_keypair()
@@ -47,7 +48,7 @@ ENTITIES = {
         license_number="AZM-LIC-001",
         country="India",
         public_key_pem=mfg_keys["public_key_pem"],
-        private_key_pem=mfg_keys["private_key_pem"],
+        private_key_pem=encrypt_private_key(mfg_keys["private_key_pem"]),
     ),
     "supplier": Supplier(
         id="sup-001",
@@ -55,7 +56,7 @@ ENTITIES = {
         warehouse_location="Guwahati",
         country="India",
         public_key_pem=sup_keys["public_key_pem"],
-        private_key_pem=sup_keys["private_key_pem"],
+        private_key_pem=encrypt_private_key(sup_keys["private_key_pem"]),
     ),
     "consumer": Consumer(
         id="con-001",
@@ -64,7 +65,7 @@ ENTITIES = {
         location="Guwahati",
         country="India",
         public_key_pem=con_keys["public_key_pem"],
-        private_key_pem=con_keys["private_key_pem"],
+        private_key_pem=encrypt_private_key(con_keys["private_key_pem"]),
     ),
 }
 

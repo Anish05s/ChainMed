@@ -7,6 +7,7 @@ from models import User, Manufacturer, Supplier, Consumer
 from auth.schemas import RegisterRequest, LoginRequest, TokenResponse, ROLE_SUB_ROLE
 from auth.utils import hash_password, verify_password, create_access_token, decode_token
 from auth.signing import generate_entity_keypair
+from auth.key_encryption import encrypt_private_key
 from shared.entity_ids import next_entity_id
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -69,7 +70,7 @@ def _create_entity(db: Session, data: RegisterRequest) -> str:
             license_number=data.license_number or f"LIC-{data.email.split('@')[0]}",
             country=data.country,
             public_key_pem=keypair["public_key_pem"],
-            private_key_pem=keypair["private_key_pem"],
+            private_key_pem=encrypt_private_key(keypair["private_key_pem"]),
         )
     elif data.role == "supplier":
         entity = Supplier(
@@ -78,7 +79,7 @@ def _create_entity(db: Session, data: RegisterRequest) -> str:
             warehouse_location=data.warehouse_location or data.location,
             country=data.country,
             public_key_pem=keypair["public_key_pem"],
-            private_key_pem=keypair["private_key_pem"],
+            private_key_pem=encrypt_private_key(keypair["private_key_pem"]),
         )
     elif data.role == "consumer":
         entity = Consumer(
@@ -88,7 +89,7 @@ def _create_entity(db: Session, data: RegisterRequest) -> str:
             location=data.location,
             country=data.country,
             public_key_pem=keypair["public_key_pem"],
-            private_key_pem=keypair["private_key_pem"],
+            private_key_pem=encrypt_private_key(keypair["private_key_pem"]),
         )
     else:
         raise HTTPException(status_code=400, detail="Invalid role")
@@ -129,7 +130,7 @@ def register(request: Request, data: RegisterRequest, db: Session = Depends(get_
         sub_role=sub_role,
         entity_id=entity_id,
         public_key_pem=user_keys["public_key_pem"],
-        private_key_pem=user_keys["private_key_pem"],
+        private_key_pem=encrypt_private_key(user_keys["private_key_pem"]),
     )
     db.add(user)
     db.commit()
