@@ -39,8 +39,9 @@ export default function Login() {
       else if (data.role === 'consumer') navigate('/hospital')
       else if (data.role === 'admin') navigate('/admin')
       else navigate('/')
-    } catch {
-      setError('Invalid email or password. Please try again.')
+    } catch (err) {
+      const detail = err.response?.data?.detail
+      setError(typeof detail === 'string' ? detail : 'Invalid email or password. Please try again.')
     } finally {
       setLoading(false)
     }
