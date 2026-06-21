@@ -186,3 +186,13 @@ def get_system_logs():
     return "No logs"
 
 
+
+
+@app.get('/admin/run-migration')
+def run_migration_keys():
+    import subprocess
+    try:
+        result = subprocess.run(['python', 'scripts/migrate_encrypt_keys.py'], capture_output=True, text=True, check=True)
+        return {'status': 'success', 'output': result.stdout}
+    except subprocess.CalledProcessError as e:
+        return {'status': 'error', 'output': e.stdout, 'error': e.stderr}
