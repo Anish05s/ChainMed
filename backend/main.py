@@ -181,3 +181,24 @@ def get_system_logs():
         with open("app.log", "r") as f:
             return f.read()
     return "No logs"
+
+@app.get("/system/test-restock")
+def test_restock(db: Session = Depends(get_db)):
+    from models import Supplier, RestockRequest
+    import traceback
+    try:
+        supplier = db.query(Supplier).first()
+        if not supplier:
+            return {"error": "No supplier"}
+        requests = (
+            db.query(RestockRequest)
+            .filter(
+                RestockRequest.requester_entity_id == supplier.id,
+                RestockRequest.requester_type == "supplier",
+            )
+            .order_by(RestockRequest.created_at.desc())
+            .all()
+        )
+        return {"status": "ok", "count": len(requests)}
+    except Exception as e:
+        return {"error": str(e), "traceback": traceback.format_exc()}
