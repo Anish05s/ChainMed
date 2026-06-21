@@ -1,6 +1,7 @@
 import secrets
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from database import get_db, SessionLocal
 from config import settings
@@ -303,3 +304,58 @@ def list_emergency_notifications(
     manufacturer = _get_manufacturer(db, current_user.entity_id)
     requests = notifications_for_manufacturer(db, manufacturer.id)
     return to_notification_items(db, requests)
+
+
+@router.get("/batches/{batch_id}/compliance-report")
+def download_compliance_report(
+    batch_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_manufacturer),
+):
+    """
+    Stream a compliance PDF for the given batch.
+    The PDF is generated on-demand from live DB data — nothing is stored on disk.
+    """
+    from reports.compliance_pdf import generate_compliance_pdf
+
+    manufacturer = _get_manufacturer(db, current_user.entity_id)
+
+    # Verify the batch belongs to this manufacturer
+    batch = (
+        db.query(MedicineBatch)
+        .filter(
+            MedicineBatch.id == batch_id,
+            MedicineBatch.manufacturer_id == manufacturer.id,
+        )
+        .first()
+    )
+    if not batch:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Batch not found or does not belong to your manufacturer",
+        )
+
+    # Gather all ApprovalLog rows linked to this batch or any of its shipments
+    from models import Shipment
+    shipment_ids = [
+        s.id for s in db.query(Shipment).filter(Shipment.batch_id == batch_id).all()
+    ]
+    entity_ids = [batch_id] + shipment_ids
+
+    logs = (
+        db.query(ApprovalLog)
+        .filter(ApprovalLog.entity_id.in_(entity_ids))
+        .order_by(ApprovalLog.created_at.asc())
+        .all()
+    )
+
+    pdf_buf = generate_compliance_pdf(batch, manufacturer, logs)
+    safe_name = (batch.batch_number or batch_id).replace("/", "-").replace(" ", "_")
+
+    return StreamingResponse(
+        pdf_buf,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="compliance-report-{safe_name}.pdf"'
+        },
+    )

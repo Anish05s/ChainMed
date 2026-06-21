@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import Layout from '../components/Layout'
 import ChainVerificationPanel from '../components/ChainVerificationPanel'
 import StatusBadge from '../components/StatusBadge'
-import { getBatches } from '../api/manufacturer'
+import { getBatches, downloadComplianceReport } from '../api/manufacturer'
 import { getManufacturerChain } from '../api/verification'
 
 function fmt(v) {
@@ -48,6 +48,7 @@ export default function ManufacturerDashboard() {
   const [chainLoading, setChainLoading] = useState(false)
   const [chainError,   setChainError]   = useState('')
   const [activeBatchId,setActiveBatchId]= useState(null)
+  const [pdfLoading,   setPdfLoading]   = useState({}) // { [batchId]: true/false }
 
   useEffect(() => {
     getBatches()
@@ -65,6 +66,17 @@ export default function ManufacturerDashboard() {
       setChainError(err.response?.data?.detail || 'Verification failed')
     } finally {
       setChainLoading(false)
+    }
+  }
+
+  async function handleExportReport(batchId, batchNumber) {
+    setPdfLoading(prev => ({ ...prev, [batchId]: true }))
+    try {
+      await downloadComplianceReport(batchId, batchNumber)
+    } catch (err) {
+      alert('Failed to generate report: ' + (err.message || 'Unknown error'))
+    } finally {
+      setPdfLoading(prev => ({ ...prev, [batchId]: false }))
     }
   }
 
@@ -161,7 +173,7 @@ export default function ManufacturerDashboard() {
             <table className="w-full text-sm">
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg-base)' }}>
-                  {['Batch #', 'Medicine', 'Units (rem / total)', 'Mfg Date', 'Expiry', 'AI Verify'].map(h => (
+                  {['Batch #', 'Medicine', 'Units (rem / total)', 'Mfg Date', 'Expiry', 'AI Verify', 'Report'].map(h => (
                     <th key={h} className="text-left px-6 py-3 text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--text-light)' }}>{h}</th>
                   ))}
                 </tr>
@@ -202,6 +214,18 @@ export default function ManufacturerDashboard() {
                           }
                         >
                           {active ? '▲ Hide' : '🔍 Chain Verify'}
+                        </button>
+                      </td>
+                      <td className="px-6 py-4">
+                        <button
+                          id={`mfr-export-${b.id}`}
+                          type="button"
+                          disabled={!!pdfLoading[b.id]}
+                          onClick={() => handleExportReport(b.id, b.batch_number)}
+                          className="text-xs font-bold px-3 py-1.5 rounded-lg transition-all duration-200 hover:scale-105 disabled:opacity-60"
+                          style={{ background: 'rgba(124,58,237,0.08)', color: '#7c3aed', border: '1px solid rgba(124,58,237,0.18)' }}
+                        >
+                          {pdfLoading[b.id] ? '⏳ …' : '📄 Export'}
                         </button>
                       </td>
                     </tr>

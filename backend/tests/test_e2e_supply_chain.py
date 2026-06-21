@@ -501,3 +501,61 @@ class TestPhase7_AuditTrail:
         r = client.get("/health")
         assert r.status_code == 200
         assert r.json()["status"] == "ok"
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# PHASE 8 — Compliance Report PDF (P1.3 smoke test)
+# ═══════════════════════════════════════════════════════════════════════
+
+class TestPhase8_ComplianceReport:
+
+    def test_compliance_report_returns_pdf(self, client):
+        """GET /manufacturer/batches/{id}/compliance-report must return a PDF."""
+        batch_id = STATE.get("batch_id")
+        assert batch_id, "batch_id not set — Phase 2 must run first"
+
+        r = client.get(
+            f"/manufacturer/batches/{batch_id}/compliance-report",
+            headers=auth_header(STATE["mfg_token"]),
+        )
+        assert r.status_code == 200, f"Expected 200 but got {r.status_code}: {r.text}"
+        assert "application/pdf" in r.headers.get("content-type", ""), (
+            f"Expected application/pdf content-type, got: {r.headers.get('content-type')}"
+        )
+        assert r.content[:4] == b"%PDF", (
+            "Response body does not start with PDF magic bytes (%PDF)"
+        )
+
+    def test_compliance_report_content_disposition(self, client):
+        """Compliance report must include Content-Disposition attachment header."""
+        batch_id = STATE.get("batch_id")
+        r = client.get(
+            f"/manufacturer/batches/{batch_id}/compliance-report",
+            headers=auth_header(STATE["mfg_token"]),
+        )
+        assert r.status_code == 200
+        disposition = r.headers.get("content-disposition", "")
+        assert "attachment" in disposition, (
+            f"Expected 'attachment' in Content-Disposition, got: {disposition}"
+        )
+        assert "compliance-report" in disposition, (
+            f"Expected 'compliance-report' in filename, got: {disposition}"
+        )
+
+    def test_compliance_report_wrong_batch_returns_404(self, client):
+        """A manufacturer cannot download another entity's batch report."""
+        r = client.get(
+            "/manufacturer/batches/nonexistent-batch-id-xyz/compliance-report",
+            headers=auth_header(STATE["mfg_token"]),
+        )
+        assert r.status_code == 404, (
+            f"Expected 404 for non-existent batch, got {r.status_code}"
+        )
+
+    def test_compliance_report_requires_auth(self, client):
+        """Compliance report endpoint must reject unauthenticated requests."""
+        batch_id = STATE.get("batch_id")
+        r = client.get(f"/manufacturer/batches/{batch_id}/compliance-report")
+        assert r.status_code in (401, 403), (
+            f"Expected 401/403 without auth token, got {r.status_code}"
+        )
