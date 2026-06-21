@@ -5,7 +5,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from database import get_db, SessionLocal
 from config import settings
-from blockchain_service.service import bg_record_handoff_and_store
+from blockchain_service.service import bg_record_handoff_and_store, bg_record_batch_and_store
 from models import Manufacturer, MedicineBatch, ApprovalLog, Shipment, Supplier, TradePartnership
 from auth.dependencies import require_manufacturer
 from models import User
@@ -77,6 +77,7 @@ def list_batches(
 @router.post("/batches", response_model=BatchResponse, status_code=status.HTTP_201_CREATED)
 def create_batch(
     data: BatchCreateRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_manufacturer),
 ):
@@ -134,6 +135,27 @@ def create_batch(
     db.commit()
     db.refresh(batch)
     db.refresh(approval_log)
+    
+    # Send to blockchain in the background
+    import json
+    batch_data_str = json.dumps({
+        "batch_number": data.batch_number,
+        "quantity": data.quantity,
+        "manufacturer_id": manufacturer.id,
+        "expiry_date": data.expiry_date.isoformat(),
+        "manufacturing_date": data.manufacturing_date.isoformat(),
+    }, sort_keys=True)
+    
+    background_tasks.add_task(
+        bg_record_batch_and_store,
+        batch.id,
+        batch_data_str,
+        SessionLocal,
+        MedicineBatch,
+        batch.id,
+        "blockchain_hash",
+        approval_log.id,
+    )
 
     return BatchResponse(
         id=batch.id,

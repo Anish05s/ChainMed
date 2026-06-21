@@ -373,6 +373,21 @@ class BlockchainService:
     def is_mock(self) -> bool:
         return self._mock_mode
 
+    def record_batch(self, batch_id: str, data: str) -> Optional[str]:
+        """
+        Record a batch creation on-chain.
+        Returns tx hash (or mock hash).
+        """
+        data_hash = hashlib.sha256(data.encode()).hexdigest()
+        
+        if self._mock_mode:
+            tx_hash = f"mock:sha256:batch:{data_hash}"
+            logger.info("[MOCK] Batch recorded: %s → %s", batch_id, tx_hash)
+            return tx_hash
+            
+        logger.warning("Real blockchain mode does not yet support record_batch. Falling back to mock hash.")
+        return f"mock:sha256:batch:{data_hash}"
+
 
 # ── Singleton instance (initialised in main.py startup) ─────────────────────
 _service: Optional[BlockchainService] = None
@@ -429,3 +444,42 @@ def bg_record_handoff_and_store(
             db.rollback()
         finally:
             db.close()
+
+
+def bg_record_batch_and_store(
+    batch_id: str,
+    data: str,
+    db_session_factory,
+    model_class,
+    record_id: str,
+    hash_column: str = "blockchain_hash",
+    approval_log_id: str = None,
+) -> None:
+    """
+    Background task:
+      1. Record batch on-chain
+      2. Write tx hash back to the DB record and the associated ApprovalLog
+    """
+    svc = get_blockchain_service()
+    tx_hash = svc.record_batch(batch_id, data)
+
+    if tx_hash:
+        from models import ApprovalLog
+        db = db_session_factory()
+        try:
+            obj = db.query(model_class).filter(model_class.id == record_id).first()
+            if obj:
+                setattr(obj, hash_column, tx_hash)
+            
+            if approval_log_id:
+                log_obj = db.query(ApprovalLog).filter(ApprovalLog.id == approval_log_id).first()
+                if log_obj:
+                    log_obj.blockchain_hash = tx_hash
+                    
+            db.commit()
+        except Exception as exc:
+            logger.error("Failed to write blockchain_hash to DB: %s", exc)
+            db.rollback()
+        finally:
+            db.close()
+
