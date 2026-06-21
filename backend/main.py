@@ -51,6 +51,17 @@ async def lifespan(app: FastAPI):
         )
     # ─────────────────────────────────────────────────────────────────────────
 
+    # 0. Auto-run Database Migrations on Startup
+    try:
+        from alembic import command
+        from alembic.config import Config
+        logger.info("Running Alembic database migrations...")
+        alembic_cfg = Config("alembic.ini")
+        command.upgrade(alembic_cfg, "head")
+        logger.info("Database migrations complete.")
+    except Exception as e:
+        logger.error(f"Failed to run database migrations: {e}")
+
     # 1. Blockchain service (mock or real Sepolia)
     init_blockchain_service(
         rpc_url=settings.ETHEREUM_RPC_URL,
