@@ -19,11 +19,19 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
+def get_real_ip(request: Request) -> str:
+    forwarded_for = request.headers.get("x-forwarded-for")
+    if forwarded_for:
+        return forwarded_for.split(",")[0].strip()
+    if request.client and request.client.host:
+        return request.client.host
+    return "127.0.0.1"
+
 # Rate limiter — use Redis if available, fallback to in-memory
 try:
-    limiter = Limiter(key_func=get_remote_address, storage_uri=settings.REDIS_URL)
+    limiter = Limiter(key_func=get_real_ip, storage_uri=settings.REDIS_URL)
 except Exception:
-    limiter = Limiter(key_func=get_remote_address)
+    limiter = Limiter(key_func=get_real_ip)
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
