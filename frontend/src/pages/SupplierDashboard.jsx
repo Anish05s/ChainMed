@@ -14,6 +14,7 @@ import {
   getMyRestockRequests,
   resolveRestockRequest,
 } from '../api/supplier'
+import { submitShipmentDispute } from '../api/shared'
 import { getSupplierChain } from '../api/verification'
 import { DEFAULT_ENTITY_ID } from '../utils/entityIds'
 
@@ -98,6 +99,8 @@ export default function SupplierDashboard() {
   const [loading,   setLoading]   = useState(true)
   const [message,   setMessage]   = useState({ type: '', text: '' })
   const [verifyId,  setVerifyId]  = useState(null)
+  const [disputeId, setDisputeId] = useState(null)
+  const [disputeText, setDisputeText] = useState('')
   const [submitting,setSubmitting]= useState(false)
   const [chainReport,  setChainReport]  = useState(null)
   const [chainLoading, setChainLoading] = useState(false)
@@ -134,6 +137,20 @@ export default function SupplierDashboard() {
       setVerifyId(null); load()
     } catch (err) {
       flash('error', err.response?.data?.detail || 'Verification failed')
+    } finally { setSubmitting(false) }
+  }
+
+  async function handleDispute(shipmentId) {
+    if (!disputeText.trim()) { flash('error', 'Please provide a justification'); return }
+    setSubmitting(true)
+    try {
+      await submitShipmentDispute(shipmentId, disputeText)
+      flash('success', 'Dispute submitted. Awaiting multi-sig admin approval.')
+      setDisputeId(null)
+      setDisputeText('')
+      load()
+    } catch (err) {
+      flash('error', err.response?.data?.detail || 'Failed to submit dispute')
     } finally { setSubmitting(false) }
   }
 
@@ -311,7 +328,46 @@ export default function SupplierDashboard() {
                       </div>
                     </div>
 
-                    {s.status !== 'delivered' && (
+                    {s.status === 'FLAGGED' && (
+                      disputeId === s.id ? (
+                        <div className="mt-3 bg-red-500/10 p-4 rounded-xl border border-red-500/20">
+                          <p className="text-sm font-semibold text-red-400 mb-2">Dispute AI Flag</p>
+                          <textarea
+                            className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm text-white mb-3"
+                            rows="3"
+                            placeholder="Provide justification or reference to manual sensor logs..."
+                            value={disputeText}
+                            onChange={(e) => setDisputeText(e.target.value)}
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleDispute(s.id)}
+                              disabled={submitting}
+                              className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white font-bold rounded-lg transition-colors text-sm"
+                            >
+                              {submitting ? 'Submitting...' : 'Submit Dispute'}
+                            </button>
+                            <button
+                              onClick={() => setDisputeId(null)}
+                              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-lg transition-colors text-sm"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setDisputeId(s.id)}
+                          className="mt-2 text-xs font-bold px-3 py-1.5 rounded-lg transition-all hover:scale-105"
+                          style={{ background: 'rgba(239,68,68,0.1)', color: 'var(--red)', border: '1px solid rgba(239,68,68,0.2)' }}
+                        >
+                          ⚠️ Dispute Flag
+                        </button>
+                      )
+                    )}
+
+                    {s.status !== 'delivered' && s.status !== 'FLAGGED' && (
                       verifyId === s.id ? (
                         <div className="mt-3">
                           <HandoffForm

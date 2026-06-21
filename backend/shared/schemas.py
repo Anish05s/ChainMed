@@ -46,6 +46,10 @@ class EmergencyNotificationItem(BaseModel):
     created_at: datetime
 
 
+class DisputeSubmitRequest(BaseModel):
+    justification: str
+
+
 class OverrideSummary(BaseModel):
     justification: str
     ai_cross_check: Optional[str] = None

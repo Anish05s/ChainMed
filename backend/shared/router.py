@@ -11,9 +11,14 @@ from models import (
     Manufacturer,
     Supplier,
     Consumer,
+    User,
+    AdminOverrideRequest,
 )
-from shared.schemas import ApprovalLogItem, PublicShipmentResponse, HandoffPublicItem, MedicineCatalogItem
+from shared.schemas import ApprovalLogItem, PublicShipmentResponse, HandoffPublicItem, MedicineCatalogItem, DisputeSubmitRequest
 from models import MedicineCatalog
+from auth.dependencies import get_current_user
+from audit_chain import write_approval_log
+import math
 
 router = APIRouter(prefix="/shared", tags=["Shared"])
 
@@ -121,4 +126,65 @@ def get_public_shipment(shipment_id: str, db: Session = Depends(get_db)):
         handoffs=[HandoffPublicItem.model_validate(h) for h in handoffs],
         approval_logs=[ApprovalLogItem.model_validate(log) for log in logs],
     )
+
+
+@router.post("/shipment/{shipment_id}/dispute", response_model=dict)
+def submit_shipment_dispute(
+    shipment_id: str,
+    data: DisputeSubmitRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    shipment = db.query(Shipment).filter(Shipment.id == shipment_id).first()
+    if not shipment:
+        raise HTTPException(status_code=404, detail="Shipment not found")
+
+    if shipment.status != "FLAGGED":
+        raise HTTPException(status_code=400, detail="Shipment is not currently flagged")
+
+    if current_user.entity_id not in [shipment.from_entity_id, shipment.to_entity_id]:
+        raise HTTPException(status_code=403, detail="You are not authorized to dispute this shipment")
+
+    # Check for existing pending request
+    existing = db.query(AdminOverrideRequest).filter(
+        AdminOverrideRequest.shipment_id == shipment_id,
+        AdminOverrideRequest.status == "pending"
+    ).first()
+    
+    if existing:
+        raise HTTPException(status_code=400, detail="A dispute/override request is already pending for this shipment.")
+
+    # Calculate 80% threshold of eligible admins
+    eligible_admins_count = db.query(User).filter(
+        User.role == "admin",
+        User.sub_role != "admin_dev"
+    ).count()
+    
+    if eligible_admins_count == 0:
+        raise HTTPException(status_code=500, detail="No eligible admins found to approve this dispute.")
+        
+    required_approvals = max(1, math.ceil(eligible_admins_count * 0.8))
+
+    req = AdminOverrideRequest(
+        shipment_id=shipment_id,
+        initiated_by=current_user.id,
+        justification=data.justification,
+        required_approvals=required_approvals,
+        current_approvals=0,
+        status="pending"
+    )
+    db.add(req)
+
+    # Log the dispute submission
+    write_approval_log(
+        db,
+        current_user,
+        action_type="dispute_submitted",
+        entity_id=shipment.id,
+        entity_type="shipment",
+        notes=f"Dispute submitted: {data.justification}"
+    )
+
+    db.commit()
+    return {"detail": "Dispute submitted successfully", "request_id": req.id}
 
