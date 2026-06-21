@@ -164,7 +164,10 @@ def health_check():
         "version": "2.0.0",
         "environment": settings.ENVIRONMENT,
         "blockchain_mode": "mock" if bc.is_mock else "sepolia",
-    }@app.exception_handler(Exception)
+    
+}
+
+@app.exception_handler(Exception)
 async def global_exception_handler(request, exc: Exception):
     logger.error(f"Unhandled Exception: {exc}")
     logger.error(traceback.format_exc())
@@ -181,3 +184,5 @@ def get_system_logs():
         with open("app.log", "r") as f:
             return f.read()
     return "No logs"
+
+
