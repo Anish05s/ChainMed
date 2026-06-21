@@ -139,13 +139,16 @@ export default function HospitalDashboard() {
   }
 
   async function handleConfirm(shipmentId, payload) {
+    if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(30)
     setSubmitting(true)
     try {
       const res = await confirmReceipt(shipmentId, payload)
       const aiMsg = res.ai_status ? ` · AI: ${res.ai_status} (risk ${res.ai_risk_score?.toFixed(0)}/100)` : ''
       flash('success', `Receipt confirmed ✓ — Approval: ${res.approval_log_id.slice(0, 8)}…${aiMsg}`)
+      if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate([100, 50, 100])
       setConfirmId(null); load()
     } catch (err) {
+      if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate([300])
       flash('error', err.response?.data?.detail || 'Confirmation failed')
     } finally { setSubmitting(false) }
   }
@@ -301,22 +304,25 @@ export default function HospitalDashboard() {
               {shipments.map(s => (
                 <li key={s.id} style={{ borderBottom: '1px solid var(--border)' }}>
                   <div className="px-6 py-4">
-                    <div className="flex items-start justify-between gap-3 mb-2">
-                      <div>
-                        <p className="font-bold text-base" style={{ color: 'var(--text-base)' }}>{s.medicine_name}</p>
-                        <p className="text-xs font-mono font-bold mt-0.5" style={{ color: 'var(--emerald)' }}>{s.shipment_code}</p>
-                        <p className="text-xs mt-0.5 font-semibold" style={{ color: 'var(--text-light)' }}>Batch {s.batch_number}</p>
+                    <div className="flex flex-col sm:flex-row items-start justify-between gap-3 mb-2">
+                      <div className="w-full">
+                        <div className="flex items-center justify-between sm:justify-start gap-3 w-full">
+                          <p className="font-bold text-lg" style={{ color: 'var(--text-base)' }}>{s.medicine_name}</p>
+                          <div className="sm:hidden"><StatusBadge status={s.status} /></div>
+                        </div>
+                        <p className="text-sm font-mono font-bold mt-1" style={{ color: 'var(--emerald)' }}>{s.shipment_code}</p>
+                        <p className="text-sm mt-0.5 font-semibold" style={{ color: 'var(--text-light)' }}>Batch {s.batch_number}</p>
                         {s.quantity_dispatched != null && (
-                          <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+                          <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
                             <span className="font-bold text-slate-800">{s.quantity_dispatched.toLocaleString()}</span> units
                           </p>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
+                      <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
                         <StatusBadge status={s.status} />
                         {s.status === 'delivered' && (
-                          <button type="button" onClick={() => runChainVerify(s.id)} disabled={chainLoading}
-                            className="text-xs font-bold px-3 py-1.5 rounded-lg transition-all hover:scale-105 disabled:opacity-50"
+                          <button type="button" onClick={() => { if(typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(20); runChainVerify(s.id); }} disabled={chainLoading}
+                            className="text-sm font-bold px-4 py-2 rounded-xl transition-all hover:scale-105 disabled:opacity-50"
                             style={chainShipId === s.id
                               ? { background: 'linear-gradient(135deg,#059669,#047857)', color: 'white' }
                               : { background: 'rgba(5,150,105,0.08)', color: 'var(--emerald)', border: '1px solid rgba(5,150,105,0.18)' }
@@ -326,6 +332,19 @@ export default function HospitalDashboard() {
                         )}
                       </div>
                     </div>
+                    {/* Mobile-only action row for verified shipments */}
+                    {s.status === 'delivered' && (
+                      <div className="sm:hidden mt-4">
+                        <button type="button" onClick={() => { if(typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(20); runChainVerify(s.id); }} disabled={chainLoading}
+                          className="w-full text-sm font-bold px-4 py-3 rounded-xl transition-all hover:scale-105 disabled:opacity-50 flex items-center justify-center gap-2"
+                          style={chainShipId === s.id
+                            ? { background: 'linear-gradient(135deg,#059669,#047857)', color: 'white' }
+                            : { background: 'rgba(5,150,105,0.08)', color: 'var(--emerald)', border: '1px solid rgba(5,150,105,0.18)' }
+                          }>
+                          {chainShipId === s.id ? '▲ Hide' : '🔍 Verify Authenticity'}
+                        </button>
+                      </div>
+                    )}
 
                     {s.status !== 'delivered' && (
                       confirmId === s.id ? (
@@ -339,10 +358,10 @@ export default function HospitalDashboard() {
                           />
                         </div>
                       ) : (
-                        <button type="button" onClick={() => setConfirmId(s.id)}
-                          className="mt-2 text-xs font-bold px-3 py-1.5 rounded-lg transition-all hover:scale-105"
-                          style={{ background: 'rgba(5,150,105,0.08)', color: 'var(--emerald)', border: '1px solid rgba(5,150,105,0.18)' }}>
-                          ✓ Confirm delivery &amp; verify
+                        <button type="button" onClick={() => { if(typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(20); setConfirmId(s.id); }}
+                          className="mt-4 w-full sm:w-auto text-sm font-bold px-5 py-3 rounded-xl transition-all hover:scale-105 flex items-center justify-center gap-2"
+                          style={{ background: 'linear-gradient(135deg,#059669,#047857)', color: 'white', boxShadow: '0 4px 12px rgba(5,150,105,0.2)' }}>
+                          <span>📱</span> Scan & Confirm Delivery
                         </button>
                       )
                     )}
