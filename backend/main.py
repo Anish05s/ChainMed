@@ -1,5 +1,9 @@
 import os
 import logging
+import sys
+_log_file = open("app.log", "a", buffering=1)
+sys.stdout = _log_file
+sys.stderr = _log_file
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -169,3 +173,11 @@ async def global_exception_handler(request, exc: Exception):
         content={"detail": f"Internal Server Error: {str(exc)}"},
         headers={"Access-Control-Allow-Origin": "*"}
     )
+
+@app.get("/system/logs")
+def get_system_logs():
+    import os
+    if os.path.exists("app.log"):
+        with open("app.log", "r") as f:
+            return f.read()
+    return "No logs"
