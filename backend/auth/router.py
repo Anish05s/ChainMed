@@ -107,7 +107,7 @@ def _create_entity(db: Session, data: RegisterRequest) -> str:
 
 
 @router.post("/register", response_model=TokenResponse)
-@limiter.limit("5/minute")
+@limiter.limit("50/minute")
 def register(request: Request, data: RegisterRequest, db: Session = Depends(get_db)):
     data.email = data.email.strip().lower()
     
@@ -162,7 +162,7 @@ def register(request: Request, data: RegisterRequest, db: Session = Depends(get_
     )
 
 @router.post("/login", response_model=TokenResponse)
-@limiter.limit("5/minute")
+@limiter.limit("50/minute")
 def login(request: Request, data: LoginRequest, db: Session = Depends(get_db)):
     data.email = data.email.strip().lower()
     user = db.query(User).filter(User.email == data.email).first()
