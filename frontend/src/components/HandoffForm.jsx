@@ -38,7 +38,7 @@ export default function HandoffForm({
     handleVibrate(50)
     onSubmit({
       quantity_reported: Number(form.quantity_reported),
-      expiry_reported:   ${form.expiry_reported}T00:00:00,
+      expiry_reported:   `${form.expiry_reported}T00:00:00`,
       temp_reported:     Number(form.temp_reported),
       notes:             form.notes || undefined,
     })
@@ -107,7 +107,7 @@ export default function HandoffForm({
 
       <div>
         <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">
-          Storage temp (°C)
+          Storage temp (Â°C)
         </label>
         <input
           type="number" step="0.1" style={inputStyle}
@@ -122,7 +122,7 @@ export default function HandoffForm({
         </label>
         <textarea
           rows={3} style={{ ...inputStyle, resize: 'none' }}
-          placeholder="Cold chain maintained, packaging intact…"
+          placeholder="Cold chain maintained, packaging intact..."
           value={form.notes}
           onChange={(e) => update('notes', e.target.value)}
         />
@@ -135,7 +135,7 @@ export default function HandoffForm({
           className="w-full sm:w-auto px-6 py-3.5 rounded-xl text-sm font-bold text-white transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
           style={{ background: 'linear-gradient(135deg,#059669,#047857)', boxShadow: '0 4px 12px rgba(5,150,105,0.2)' }}
         >
-          {submitting ? 'Submitting…' : <><span>?</span> {submitLabel}</>}
+          {submitting ? 'Submitting...' : <><span>âœ…</span> {submitLabel}</>}
         </button>
         {onCancel && (
           <button
