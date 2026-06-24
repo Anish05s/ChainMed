@@ -43,7 +43,7 @@ export default function DispatchShipment() {
     if (!batch) return
     setForm((f) => ({
       ...f,
-      quantity: String(batch.quantity_remaining ?? 0),
+      quantity: String(Math.floor((batch.quantity_remaining ?? 0) / (batch.pieces_per_pack || 1))),
     }))
   }, [form.batch_id, batches])
 

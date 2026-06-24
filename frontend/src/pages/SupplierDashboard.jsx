@@ -352,7 +352,11 @@ export default function SupplierDashboard() {
                     )}
 
                     {s.status === 'FLAGGED' && (
-                      disputeId === s.id ? (
+                      s.has_pending_dispute ? (
+                        <div className="mt-2 text-xs font-bold px-3 py-1.5 rounded-lg inline-block" style={{ background: 'rgba(234,179,8,0.1)', color: '#eab308', border: '1px solid rgba(234,179,8,0.2)' }}>
+                          ⏳ Dispute Under Review
+                        </div>
+                      ) : disputeId === s.id ? (
                         <div className="mt-3 bg-red-500/10 p-4 rounded-xl border border-red-500/20">
                           <p className="text-sm font-semibold text-red-400 mb-2">Dispute AI Flag</p>
                           <textarea

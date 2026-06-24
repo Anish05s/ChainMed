@@ -15,6 +15,7 @@ class IncomingShipmentItem(BaseModel):
     pieces_per_pack: int = 1
     pack_size: Optional[str] = None
     created_at: Optional[datetime] = None
+    has_pending_dispute: bool = False
 
     class Config:
         from_attributes = True

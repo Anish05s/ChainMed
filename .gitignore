@@ -234,3 +234,10 @@ newsapi.txt
 progress.txt
 implementation_complete.md
 improvements.md
+add_logs.py
+poll.ps1
+test_fix.ps1
+test_local.py
+test_local_flow.py
+test_prod.py
+test_prod2.py

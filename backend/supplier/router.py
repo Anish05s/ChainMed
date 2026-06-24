@@ -111,6 +111,7 @@ def list_incoming_shipments(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_supplier),
 ):
+    from models import AdminApprovalRequest
     supplier = _get_supplier(db, current_user.entity_id)
     rows = (
         db.query(Shipment, MedicineBatch)
@@ -119,6 +120,17 @@ def list_incoming_shipments(
         .order_by(Shipment.created_at.desc())
         .all()
     )
+    
+    shipment_ids = [s.id for s, b in rows]
+    pending_disputes = set()
+    if shipment_ids:
+        disputes = db.query(AdminApprovalRequest.entity_id).filter(
+            AdminApprovalRequest.entity_id.in_(shipment_ids),
+            AdminApprovalRequest.entity_type == "shipment",
+            AdminApprovalRequest.status == "pending"
+        ).all()
+        pending_disputes = {d[0] for d in disputes}
+
     return [
         IncomingShipmentItem(
             id=shipment.id,
@@ -132,6 +144,7 @@ def list_incoming_shipments(
             pieces_per_pack=batch.pieces_per_pack,
             pack_size=batch.pack_size,
             created_at=shipment.created_at,
+            has_pending_dispute=(shipment.id in pending_disputes),
         )
         for shipment, batch in rows
     ]

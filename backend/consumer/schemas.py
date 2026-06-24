@@ -13,6 +13,7 @@ class IncomingShipmentItem(BaseModel):
     status: str
     from_entity_id: str
     created_at: Optional[datetime] = None
+    has_pending_dispute: bool = False
 
     class Config:
         from_attributes = True
