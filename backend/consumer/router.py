@@ -98,7 +98,7 @@ def list_incoming_shipments(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_consumer),
 ):
-    from models import AdminApprovalRequest
+    from models import AdminOverrideRequest
     consumer = _get_consumer(db, current_user.entity_id)
     rows = (
         db.query(Shipment, MedicineBatch)
@@ -111,10 +111,9 @@ def list_incoming_shipments(
     shipment_ids = [s.id for s, b in rows]
     pending_disputes = set()
     if shipment_ids:
-        disputes = db.query(AdminApprovalRequest.entity_id).filter(
-            AdminApprovalRequest.entity_id.in_(shipment_ids),
-            AdminApprovalRequest.entity_type == "shipment",
-            AdminApprovalRequest.status == "pending"
+        disputes = db.query(AdminOverrideRequest.shipment_id).filter(
+            AdminOverrideRequest.shipment_id.in_(shipment_ids),
+            AdminOverrideRequest.status == "pending"
         ).all()
         pending_disputes = {d[0] for d in disputes}
 
